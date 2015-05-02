@@ -12,8 +12,8 @@ var leftMouseDown = false;
 var init_coordinates;
 var new_coordinates;
 var isRotating = false;
-var isScrambling = false;
-var eye = [0, 0, -10];
+var isAnimating = false;
+var eye = [5, 5, -15];
 var center = [0, 0, 0];
 var up = [0, 1, 0];
 
@@ -21,7 +21,7 @@ var modelViewMatrix = mat4.create();
 var projectionMatrix = mat4.create();
 var rotationMatrix = mat4.create();
 
-var DEGREES = 5;
+var DEGREES = 3;
 var MARGIN_OF_ERROR = 1e-3;
 var X_AXIS = 0;
 var Y_AXIS = 1;
@@ -215,7 +215,7 @@ function RubiksCube() {
         if (Math.abs(this.rotationAngle) == 90) {
             this.rotationAngle = 0;
             isRotating = false;
-            this.scramble();
+            isAnimating = false;
             return;
         }
 
@@ -275,33 +275,105 @@ function RubiksCube() {
     }
 
     this.scramble = function() {
-        if (this.scrambleCycles == 0) {
-            isRotating = false;
-            isScrambling = false;
-            return;
-        } else {
-            var r = Math.floor(Math.random() * 3)
-            var g = Math.floor(Math.random() * 3)
-            var b = Math.floor(Math.random() * 3)
-            this.selectedCube = this.cubes[r][g][b];
-
-            var axes = [X_AXIS, Y_AXIS, Z_AXIS];
-            this.axisConstant = axes[Math.floor(Math.random() * 3)];
-            if (this.axisConstant == X_AXIS) {
-                this.rotationAxis = [1, 0, 0];
-            } else if (this.axisConstant == Y_AXIS) {
-                this.rotationAxis = [0, 1, 0];
-            } else {
-                this.rotationAxis = [0, 0, 1];
-            }
-            if (Math.random() < 0.5) {
-                vec3.scale(this.rotationAxis, this.rotationAxis, -1);
-            }
-
-            this.setRotatedCubes();
-            isRotating = true;
-            this.scrambleCycles--;
+        var count = Math.floor(Math.random() * 10) + 10;
+        var moves = ['R','L','U','D','F','B','M','E','S'];
+        var moveList = [];
+        for (i=0;i<count;i++) {
+            var randomMove = moves[Math.floor(Math.random() * moves.length)];
+            var inverse = Math.random() < 0.5;
+            moveList.push({face:randomMove, ccw:inverse});            
         }
+        this.perform(moveList);
+    }
+    
+    /*
+     * For testing the rotation of a layer by matrix instead of layer.
+     * Repeatedly called by doTransform to turn layer by this.degrees until 90 degrees is done
+     */
+    this.transform = function(r,g,b, axis, inverse) {
+        var rot = [
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1]
+        ];
+        this.selectedCube = this.cubes[r][g][b];
+        this.axisConstant = axis;
+        this.rotationAxis = rot[axis];
+        if (inverse)
+            vec3.scale(this.rotationAxis, this.rotationAxis, -1);
+        this.setRotatedCubes();
+        isRotating = true;
+    }
+
+    /*
+     * For testing only: timed transform of the cube, rotating a layer
+     */
+    this.doTransform = function(params) {
+        var that = this;
+        var delay = 50;
+        if (!isRotating) {
+            var move = params.shift();
+            console.log(move);
+            this.transform(move.r, move.g, move.b, move.axis);
+            setTimeout(function() {that.doTransform(params)}, delay);
+        }
+        else
+            if (params.length > 0)
+                setTimeout(function() {that.doTransform(params)}, delay);
+    }
+
+
+    this.move = function(layer, inverse) {
+        var rot = {
+            X: [1, 0, 0],
+            Y: [0, 1, 0],
+            Z: [0, 0, 1]
+        };
+        inverse = typeof inverse !== 'undefined' ? inverse : false;
+        
+        var layers = {
+            "L": {cubie:this.cubes[1][1][2], axis:Z_AXIS, rotation:rot.Z, ccw:true},
+            "R": {cubie:this.cubes[1][1][0], axis:Z_AXIS, rotation:rot.Z, ccw:false},
+
+            "U": {cubie:this.cubes[1][0][1], axis:Y_AXIS, rotation:rot.Y, ccw:false},
+            "D": {cubie:this.cubes[1][2][1], axis:Y_AXIS, rotation:rot.Y, ccw:true},
+
+            "F": {cubie:this.cubes[0][1][1], axis:X_AXIS, rotation:rot.X, ccw:false},
+            "B": {cubie:this.cubes[2][1][1], axis:X_AXIS, rotation:rot.X, ccw:true},
+
+            "M": {cubie:this.cubes[0][1][1], axis:Z_AXIS, rotation:rot.Z, ccw:true},
+            "E": {cubie:this.cubes[0][1][1], axis:Y_AXIS, rotation:rot.Y, ccw:true},
+            "S": {cubie:this.cubes[1][1][0], axis:X_AXIS, rotation:rot.X, ccw:false}
+        };
+        
+        this.selectedCube = layers[layer].cubie;
+        this.axisConstant = layers[layer].axis;
+        this.rotationAxis = layers[layer].rotation;
+        if (layers[layer].ccw) 
+            inverse = !inverse;
+        if (inverse) {
+            vec3.scale(this.rotationAxis, this.rotationAxis, -1);
+        }
+
+        this.setRotatedCubes();
+        isRotating = true;
+    }
+
+    this.perform = function(alg) {
+        var that = this;
+        var delay = 50;
+        if (!isRotating) {
+            var move = alg.shift();
+            console.log(move.face);
+            this.move(move.face, move.ccw);
+            setTimeout(function() {that.perform(alg)}, delay);
+        }
+        else
+            if (alg.length > 0)
+                setTimeout(function() {that.perform(alg)}, delay);        
+    }
+    
+    this.scramble = function() {
     }
 }
 
@@ -812,9 +884,36 @@ function togglePerspective(event) {
     }
 }
 
+function testLayerMoves() {
+    if (!isAnimating) {
+        isAnimating = true;
+        rubiksCube.perform([
+            {face:"R", ccw:false},
+            {face:"R", ccw:true},
+            {face:"L", ccw:false},
+            {face:"L", ccw:true},
+            {face:"U", ccw:false},
+            {face:"U", ccw:true},
+            {face:"D", ccw:false},
+            {face:"D", ccw:true},
+            {face:"F", ccw:false},
+            {face:"F", ccw:true},
+            {face:"B", ccw:false},
+            {face:"B", ccw:true},
+            {face:"M", ccw:false},
+            {face:"M", ccw:true},
+            {face:"E", ccw:false},
+            {face:"E", ccw:true},
+            {face:"S", ccw:false},
+            {face:"S", ccw:true} 
+            ]);
+        return;
+    }
+}
+
 function scramble() {
-    if (!isScrambling) {
-        isScrambling = true;
+    if (!isAnimating) {
+        isAnimating = true;
         rubiksCube.scrambleCycles = Math.ceil(Math.random() * 10 + 10); // an integer between 10 and 20
         rubiksCube.scramble();
     }
