@@ -21,7 +21,7 @@ var modelViewMatrix = mat4.create();
 var projectionMatrix = mat4.create();
 var rotationMatrix = mat4.create();
 
-var DEGREES = 3;
+var DEGREES = 5;
 var MARGIN_OF_ERROR = 1e-3;
 var X_AXIS = 0;
 var Y_AXIS = 1;
@@ -216,10 +216,18 @@ function RubiksCube() {
             this.rotationAngle = 0;
             isRotating = false;
             isAnimating = false;
+            this.degrees = DEGREES;
             return;
         }
 
-        this.rotationAngle += this.degrees;
+        this.degrees = DEGREES + Math.ceil(this.degrees * Math.sin(degreesToRadians(this.rotationAngle)));
+        if (this.rotationAngle+this.degrees > 90) {
+            this.degrees = 90 - this.rotationAngle;
+            this.rotationAngle = 90;
+        }
+        else {
+            this.rotationAngle += this.degrees;
+        }
 
         var newRotationMatrix = mat4.create();
         mat4.rotate(newRotationMatrix, newRotationMatrix, degreesToRadians(this.degrees), this.rotationAxis);
@@ -274,18 +282,6 @@ function RubiksCube() {
         }
     }
 
-    this.scramble = function() {
-        var count = Math.floor(Math.random() * 10) + 10;
-        var moves = ['R','L','U','D','F','B','M','E','S'];
-        var moveList = [];
-        for (i=0;i<count;i++) {
-            var randomMove = moves[Math.floor(Math.random() * moves.length)];
-            var inverse = Math.random() < 0.5;
-            moveList.push({face:randomMove, ccw:inverse});            
-        }
-        this.perform(moveList);
-    }
-    
     /*
      * For testing the rotation of a layer by matrix instead of layer.
      * Repeatedly called by doTransform to turn layer by this.degrees until 90 degrees is done
@@ -313,7 +309,6 @@ function RubiksCube() {
         var delay = 50;
         if (!isRotating) {
             var move = params.shift();
-            console.log(move);
             this.transform(move.r, move.g, move.b, move.axis);
             setTimeout(function() {that.doTransform(params)}, delay);
         }
@@ -361,10 +356,9 @@ function RubiksCube() {
 
     this.perform = function(alg) {
         var that = this;
-        var delay = 50;
+        var delay = 10;
         if (!isRotating) {
             var move = alg.shift();
-            console.log(move.face);
             this.move(move.face, move.ccw);
             setTimeout(function() {that.perform(alg)}, delay);
         }
@@ -914,9 +908,16 @@ function testLayerMoves() {
 function scramble() {
     if (!isAnimating) {
         isAnimating = true;
-        rubiksCube.scrambleCycles = Math.ceil(Math.random() * 10 + 10); // an integer between 10 and 20
-        rubiksCube.scramble();
-    }
+        var count = Math.floor(Math.random() * 10) + 10;
+        var moves = ['R','L','U','D','F','B','M','E','S'];
+        var moveList = [];
+        for (i = 0; i < count; i++) {
+            var randomMove = moves[Math.floor(Math.random() * moves.length)];
+            var inverse = Math.random() < 0.5;
+            moveList.push({face:randomMove, ccw:inverse});            
+        }
+        rubiksCube.perform(moveList);
+    }    
 }
 
 $(document).ready(function() {
