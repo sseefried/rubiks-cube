@@ -1,3 +1,11 @@
+/** a Rubik's cube made with WebGL
+ *
+ * @link https://github.com/blonkm/rubiks-cube
+ * @authors 
+ *      Tiffany Wang - https://github.com/tinnywang
+ *      Michiel van der Blonk - blonkm@gmail.com
+ * @license LGPL
+ */
 var canvas;
 var gl;
 var rubiksCube;
@@ -423,13 +431,13 @@ function Cube(rubiksCube, coordinates, color) {
             }));
         }
         if (z == 1) {
-            this.stickers.push(new Sticker(this, this.COLORS['green'], function() {
+            this.stickers.push(new Sticker(this, this.COLORS['blue'], function() {
                 this.cube.transform();
                 mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, 1.001]);
                 mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(90));
             }));
         } else if (z == -1) {
-            this.stickers.push(new Sticker(this, this.COLORS['blue'], function() {
+            this.stickers.push(new Sticker(this, this.COLORS['green'], function() {
                 this.cube.transform();
                 mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -1.001]);
                 mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(-90));
