@@ -77,7 +77,11 @@
                     <div><span class='control'>E</span> for top view</div>
                     <div><span class='control'>Q</span> for bottom view</div>
                 </div>
-                <button type='button' class='btn btn-primary btn-lg' onclick='scramble()'>Scramble</button>
+                <form>
+	                <button type='button' class='btn btn-primary btn-lg' onclick='scramble()'>Scramble</button>
+                	<label for"scramble-length">Length</label> <input type="number" id="scramble-length" value="20" />
+                </form>
+				<pre id="moveList" class="@brand-info" style="margin-top:1em">moves will appear here</pre>
             </div>
             <div class='col-md-7 fill'>
                 <canvas id='glcanvas'>
