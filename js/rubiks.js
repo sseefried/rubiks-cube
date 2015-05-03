@@ -46,7 +46,6 @@ function RubiksCube() {
     this.axisConstant = null; // X_AXIS, Y_AXIS, or Z_AXIS
     this.rotationAngle = 0;
     this.degrees = DEGREES;
-    this.scrambleCycles = 0;
     this.cubeVerticesBuffer = null;
     this.cubeNormalsBuffer = null;
     this.cubeFacesBuffer = null;
@@ -375,7 +374,10 @@ function RubiksCube() {
                 setTimeout(function() {that.perform(alg)}, delay);        
     }
     
-    this.scramble = function() {
+    this.moveListToString = function(moveList) {
+        return moveList.map(function(move) {
+          return move.face + (move.ccw?"'":"");
+        }).join(" ");
     }
 }
 
@@ -913,19 +915,27 @@ function testLayerMoves() {
     }
 }
 
-function scramble() {
+function scramble(count) {
     if (!isAnimating) {
         isAnimating = true;
-        var count = Math.floor(Math.random() * 10) + 10;
-        var moves = ['R','L','U','D','F','B','M','E','S'];
+        var count;
+        if ($('#scramble-length'))
+            count = $('#scramble-length').val();
+        else
+            count = Math.floor(Math.random() * 10) + 10;
+        var moves = ['R','L','U','D','F','B'];
+        var movesWithSlices = ['R','L','U','D','F','B','M','E','S'];
         var moveList = [];
-        for (i = 0; i < count; i++) {
+        for (i = 0; i <= count; i++) {
             var randomMove = moves[Math.floor(Math.random() * moves.length)];
             var inverse = Math.random() < 0.5;
             moveList.push({face:randomMove, ccw:inverse});            
         }
         rubiksCube.perform(moveList);
-    }    
+    }
+    var ret = rubiksCube.moveListToString(moveList);
+    document.getElementById('moveList').innerHTML = ret;
+    return ret;
 }
 
 $(document).ready(function() {
