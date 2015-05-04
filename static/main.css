@@ -16,3 +16,12 @@ canvas {
     padding-top: 10px;
     padding-bottom: 10px;
 }
+
+#controls td {
+	padding:1em; 
+	text-align:center;
+}
+#controls td .btn:hover {
+	background-color: #428bca;
+	color: white;
+}
