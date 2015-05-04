@@ -938,6 +938,30 @@ function scramble(count) {
     return ret;
 }
 
+function initControls() {
+    $('#controls .btn').click(function() {
+        var arrControls = [
+            "R","L","U","D","F","B",
+            "R-prime","L-prime","U-prime","D-prime","F-prime","B-prime",
+            "R2","L2","U2","D2","F2","B2"
+            ];
+        var control = this.id.replace('move-','');        
+        var prime = false;
+        var doubleMove = false;
+        if (control.match('prime'))
+            prime = true;
+        if (control.match('2'))
+            doubleMove = true;
+        var layer = control.charAt(0);
+        var moveList = [];
+        moveList.push({face:layer, ccw:prime});            
+        if (doubleMove) {
+            moveList.push({face:layer, ccw:prime});            
+        }
+        rubiksCube.perform(moveList);
+    });
+}
+
 $(document).ready(function() {
     start();
     $('#glcanvas').bind('contextmenu', function(e) { return false; });
@@ -951,4 +975,5 @@ $(document).ready(function() {
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
     });
+    initControls();
 });
