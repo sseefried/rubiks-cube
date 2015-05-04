@@ -365,9 +365,10 @@ function RubiksCube() {
         var that = this;
         var delay = 10;
         if (!isRotating) {
-            var move = alg.shift();
+            var clone = alg.slice(0);
+            var move = clone.shift();
             this.move(move.face, move.ccw);
-            setTimeout(function() {that.perform(alg)}, delay);
+            setTimeout(function() {that.perform(clone)}, delay);
         }
         else
             if (alg.length > 0)
@@ -926,7 +927,7 @@ function scramble(count) {
         var moves = ['R','L','U','D','F','B'];
         var movesWithSlices = ['R','L','U','D','F','B','M','E','S'];
         var moveList = [];
-        for (i = 0; i <= count; i++) {
+        for (i = 0; i < count; i++) {
             var randomMove = moves[Math.floor(Math.random() * moves.length)];
             var inverse = Math.random() < 0.5;
             moveList.push({face:randomMove, ccw:inverse});            
