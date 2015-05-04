@@ -977,4 +977,6 @@ $(document).ready(function() {
         canvas.height = canvas.clientHeight;
     });
     initControls();
+    $('#reset-cube').click(function() {rubiksCube.init()});
+    $('#scramble-cube').click(scramble);
 });
