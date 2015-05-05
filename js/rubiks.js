@@ -1,4 +1,6 @@
 (function(){
+    'use strict';
+    
     /** a Rubik's cube made with WebGL
      *
      * @link https://github.com/blonkm/rubiks-cube
@@ -933,7 +935,7 @@
             var prevIndex = 0;
             var randomMove;
             var inverse;
-            for (i = 0; i < count; i++) {
+            for (var i = 0; i < count; i++) {
                 moveIndex = Math.floor(Math.random() * moves.length);
                 while (moveIndex/2 == prevIndex/2) {
                     moveIndex = Math.floor(Math.random() * moves.length);
