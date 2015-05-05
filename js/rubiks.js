@@ -917,9 +917,10 @@ function testLayerMoves() {
 }
 
 function scramble(count) {
+    var count;
     if (!isAnimating) {
         isAnimating = true;
-        var count;
+        
         if ($('#scramble-length'))
             count = $('#scramble-length').val();
         else
@@ -927,9 +928,18 @@ function scramble(count) {
         var moves = ['R','L','U','D','F','B'];
         var movesWithSlices = ['R','L','U','D','F','B','M','E','S'];
         var moveList = [];
+        var moveIndex = 0;
+        var prevIndex = 0;
+        var randomMove;
+        var inverse;
         for (i = 0; i < count; i++) {
-            var randomMove = moves[Math.floor(Math.random() * moves.length)];
-            var inverse = Math.random() < 0.5;
+            moveIndex = Math.floor(Math.random() * moves.length);
+            while (moveIndex/2 == prevIndex/2) {
+                moveIndex = Math.floor(Math.random() * moves.length);
+            }
+            randomMove = moves[moveIndex];
+            prevIndex = moveIndex;
+            inverse = Math.random() < 0.5;
             moveList.push({face:randomMove, ccw:inverse});            
         }
         rubiksCube.perform(moveList);
