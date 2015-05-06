@@ -230,7 +230,7 @@
                 return;
             }
 
-            this.degrees = DEGREES + Math.ceil(this.degrees * Math.sin(degreesToRadians(this.rotationAngle)));
+            this.degrees = 1 + DEGREES * $.easing.easeOutCubic(0, this.rotationAngle, 0, 1, 90);
             if (this.rotationAngle+this.degrees > 90) {
                 this.degrees = 90 - this.rotationAngle;
                 this.rotationAngle = 90;
