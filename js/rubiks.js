@@ -32,7 +32,7 @@
     var projectionMatrix = mat4.create();
     var rotationMatrix = mat4.create();
 
-    var DEGREES = 5;
+    var DEGREES = 15;
     var MARGIN_OF_ERROR = 1e-3;
     var X_AXIS = 0;
     var Y_AXIS = 1;
@@ -230,7 +230,7 @@
                 return;
             }
 
-            this.degrees = DEGREES + Math.ceil(this.degrees * Math.sin(degreesToRadians(this.rotationAngle)));
+            this.degrees = 3 + DEGREES * $.easing.easeOutCubic(0, this.rotationAngle, 0, 1, 90);
             if (this.rotationAngle+this.degrees > 90) {
                 this.degrees = 90 - this.rotationAngle;
                 this.rotationAngle = 90;
