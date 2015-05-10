@@ -79,11 +79,17 @@
                     <div><span class='control'>Q</span> for bottom view</div>
                 </div>
                 <form>
+	                <p>
 	                <button id="reset-cube" type='button' class='btn btn-primary btn-lg'>Reset</button>
 	                <button id="scramble-cube" type='button' class='btn btn-primary btn-lg'>Scramble</button>
                 	<label for"scramble-length">Length</label> <input type="number" id="scramble-length" min="1" value="20" />
+					<pre id="moveList" class="@brand-info" style="margin-top:1em">moves will appear here</pre>
+					</p>
+	                <p>
+	                <button id="run-alg" type='button' class='btn btn-primary btn-lg'>Run algorithm</button><br/>
+                	<label for"algorithm">Algorithm</label> <input  class="form-control" placeholder="Algorithm" type="text" id="algorithm" />
+                	</p>
                 </form>
-				<pre id="moveList" class="@brand-info" style="margin-top:1em">moves will appear here</pre>
 				<table id="controls">
 					<tr>
 						<td><button class="btn" id="move-R">R</button></td>
@@ -92,6 +98,9 @@
 						<td><button class="btn" id="move-D">D</button></td>
 						<td><button class="btn" id="move-F">F</button></td>
 						<td><button class="btn" id="move-B">B</button></td>
+						<td><button class="btn" id="move-M">M</button></td>
+						<td><button class="btn" id="move-E">E</button></td>
+						<td><button class="btn" id="move-S">S</button></td>
 					</tr>
 					<tr>
 						<td><button class="btn" id="move-R-prime">R'</button></td>
@@ -100,6 +109,9 @@
 						<td><button class="btn" id="move-D-prime">D'</button></td>
 						<td><button class="btn" id="move-F-prime">F'</button></td>
 						<td><button class="btn" id="move-B-prime">B'</button></td>
+						<td><button class="btn" id="move-M-prime">M'</button></td>
+						<td><button class="btn" id="move-E-prime">E'</button></td>
+						<td><button class="btn" id="move-S-prime">S'</button></td>
 					</tr>
 					<tr>
 						<td><button class="btn" id="move-R2">R2</button></td>
@@ -108,6 +120,9 @@
 						<td><button class="btn" id="move-D2">D2</button></td>
 						<td><button class="btn" id="move-F2">F2</button></td>
 						<td><button class="btn" id="move-B2">B2</button></td>
+						<td><button class="btn" id="move-M2">M2</button></td>
+						<td><button class="btn" id="move-E2">E2</button></td>
+						<td><button class="btn" id="move-S2">S2</button></td>
 					</tr>
 				</table>
             </div>
