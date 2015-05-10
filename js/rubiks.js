@@ -328,6 +328,80 @@
         }
 
 
+        this.centerCubes = {
+            left:   this.cubes[1][1][2],
+            right:  this.cubes[1][1][0],
+            up:     this.cubes[1][0][1],
+            down:   this.cubes[1][2][1],
+            front:  this.cubes[0][1][1],
+            back:   this.cubes[2][1][1],
+            core:   this.cubes[1][1][1]
+        }
+
+        /* rotate defined centers with a slice layer */
+        this.updateCenters = function(layer, inverse) {
+            var c=this.centerCubes;
+            var centers = {
+                'M': {
+                    left:   c.left,
+                    right:  c.right,
+                    up:     c.back,
+                    down:   c.front,
+                    front:  c.up,
+                    back:   c.down
+                },
+                'E': {
+                    left:   c.back,
+                    right:  c.front,
+                    up:     c.up,
+                    down:   c.down,
+                    front:  c.left,
+                    back:   c.right
+                },
+                'S': {
+                    left:   c.down,
+                    right:  c.up,
+                    up:     c.left,
+                    down:   c.right,
+                    front:  c.front,
+                    back:   c.back
+                }
+            };
+            var centersInverse = {
+                'M': {
+                    left:   c.left,
+                    right:  c.right,
+                    up:     c.front,
+                    down:   c.back,
+                    front:  c.down,
+                    back:   c.up
+                },
+                'E': {
+                    left:   c.front,
+                    right:  c.back,
+                    up:     c.up,
+                    down:   c.down,
+                    front:  c.right,
+                    back:   c.left
+                },
+                'S': {
+                    left:   c.up,
+                    right:  c.down,
+                    up:     c.right,
+                    down:   c.left,
+                    front:  c.front,
+                    back:   c.back
+                },
+            };
+            if (centers[layer])
+            {
+                if (inverse==true)
+                    this.centerCubes = centersInverse[layer];
+                else
+                    this.centerCubes = centers[layer];
+            }
+        }
+        
         this.move = function(layer, inverse) {
             var rot = {
                 X: [1, 0, 0],
@@ -337,29 +411,33 @@
             inverse = typeof inverse !== 'undefined' ? inverse : false;
 
             var layers = {
-                "L": {cubie:this.cubes[1][1][2], axis:Z_AXIS, rotation:rot.Z, ccw:true},
-                "R": {cubie:this.cubes[1][1][0], axis:Z_AXIS, rotation:rot.Z, ccw:false},
+                "L": {cubie:this.centerCubes.left, axis:Z_AXIS, rotation:rot.Z, ccw:true},
+                "R": {cubie:this.centerCubes.right, axis:Z_AXIS, rotation:rot.Z, ccw:false},
 
-                "U": {cubie:this.cubes[1][0][1], axis:Y_AXIS, rotation:rot.Y, ccw:false},
-                "D": {cubie:this.cubes[1][2][1], axis:Y_AXIS, rotation:rot.Y, ccw:true},
+                "U": {cubie:this.centerCubes.up, axis:Y_AXIS, rotation:rot.Y, ccw:false},
+                "D": {cubie:this.centerCubes.down, axis:Y_AXIS, rotation:rot.Y, ccw:true},
 
-                "F": {cubie:this.cubes[0][1][1], axis:X_AXIS, rotation:rot.X, ccw:false},
-                "B": {cubie:this.cubes[2][1][1], axis:X_AXIS, rotation:rot.X, ccw:true},
+                "F": {cubie:this.centerCubes.front, axis:X_AXIS, rotation:rot.X, ccw:false},
+                "B": {cubie:this.centerCubes.back, axis:X_AXIS, rotation:rot.X, ccw:true},
 
-                "M": {cubie:this.cubes[0][1][1], axis:Z_AXIS, rotation:rot.Z, ccw:true},
-                "E": {cubie:this.cubes[0][1][1], axis:Y_AXIS, rotation:rot.Y, ccw:true},
-                "S": {cubie:this.cubes[1][1][0], axis:X_AXIS, rotation:rot.X, ccw:false}
+                // use center of cube for slices
+                "M": {cubie:this.centerCubes.core, axis:Z_AXIS, rotation:rot.Z, ccw:true},
+                "E": {cubie:this.centerCubes.core, axis:Y_AXIS, rotation:rot.Y, ccw:true},
+                "S": {cubie:this.centerCubes.core, axis:X_AXIS, rotation:rot.X, ccw:false}
             };
 
             this.selectedCube = layers[layer].cubie;
             this.axisConstant = layers[layer].axis;
             this.rotationAxis = layers[layer].rotation;
+            // update centers for e.g. slice moves
+            this.updateCenters(layer, inverse);
+            // not a true counter clockwise
+            // but instead a ccw over this axis seen from origin
             if (layers[layer].ccw) 
                 inverse = !inverse;
             if (inverse) {
                 vec3.scale(this.rotationAxis, this.rotationAxis, -1);
             }
-
             this.setRotatedCubes();
             isRotating = true;
         }
@@ -952,6 +1030,37 @@
         return ret;
     }
 
+    function doAlgorithm(alg) {
+        if (!isAnimating) {
+            isAnimating = true;
+
+            var alg = alg.replace(/ /g, '');
+            alg = alg.replace(/'/g,'3');
+            alg = alg.replace(/x/g,'rL3');
+            alg = alg.replace(/y/g,'uD3');
+            alg = alg.replace(/z/g,'fB3');
+            alg = alg.replace(/u/g,'U1E3');
+            alg = alg.replace(/d/g,'D1E1');
+            alg = alg.replace(/f/g,'F1S1');
+            alg = alg.replace(/b/g,'B1S3');
+            alg = alg.replace(/l/g,'L1M1');
+            alg = alg.replace(/r/g,'R1M3');
+            alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/g,"$11$2");
+            alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/g,"$11$2");
+            alg = alg.replace(/([0-9])([LRUDFBMESxyz])/g,"$1,$2");
+            alg = alg.replace(/([LRUDFBMESxyz])$/,"$11");
+            var moveList = alg.split(",")
+                .map(function(el){
+                  var n = 1*el.charAt(1);
+                  return {
+                      face:el.charAt(0),
+                      ccw: n==3,
+                      count:(""+n).replace(3,1)}
+                });
+            rubiksCube.perform(moveList);
+        }
+    }
+    
     function initControls() {
         $('#controls .btn').click(function() {
             var arrControls = [
@@ -992,5 +1101,6 @@
         initControls();
         $('#reset-cube').click(function() {rubiksCube.init()});
         $('#scramble-cube').click(scramble);
+        $('#run-alg').click(function() { doAlgorithm($('#algorithm').val())} );
     });
 })();
