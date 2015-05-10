@@ -399,16 +399,17 @@
                     this.centerCubes = centersInverse[layer];
                 else
                     this.centerCubes = centers[layer];
+                this.centerCubes.core = this.cubes[1][1][1];
             }
         }
         
-        this.move = function(layer, inverse) {
+        this.move = function(move) {
             var rot = {
                 X: [1, 0, 0],
                 Y: [0, 1, 0],
                 Z: [0, 0, 1]
             };
-            inverse = typeof inverse !== 'undefined' ? inverse : false;
+            var inverse = typeof move.inverse !== 'undefined' ? move.inverse : false;
 
             var layers = {
                 "L": {cubie:this.centerCubes.left, axis:Z_AXIS, rotation:rot.Z, ccw:true},
@@ -426,14 +427,14 @@
                 "S": {cubie:this.centerCubes.core, axis:X_AXIS, rotation:rot.X, ccw:false}
             };
 
-            this.selectedCube = layers[layer].cubie;
-            this.axisConstant = layers[layer].axis;
-            this.rotationAxis = layers[layer].rotation;
+            this.selectedCube = layers[move.face].cubie;
+            this.axisConstant = layers[move.face].axis;
+            this.rotationAxis = layers[move.face].rotation;
             // update centers for e.g. slice moves
-            this.updateCenters(layer, inverse);
+            this.updateCenters(move.face, move.inverse);
             // not a true counter clockwise
             // but instead a ccw over this axis seen from origin
-            if (layers[layer].ccw) 
+            if (layers[move.face].ccw) 
                 inverse = !inverse;
             if (inverse) {
                 vec3.scale(this.rotationAxis, this.rotationAxis, -1);
@@ -448,7 +449,11 @@
             if (!isRotating) {
                 var clone = alg.slice(0);
                 var move = clone.shift();
-                this.move(move.face, move.ccw);
+                if (!move.count)
+                    move.count = 1;
+                for (var i=0;i<move.count;i++)
+                    this.move(move);                
+                that.setNormals = 'MESxyz'.match(move.face)!=null;
                 setTimeout(function() {that.perform(clone)}, delay);
             }
             else
@@ -458,7 +463,7 @@
 
         this.moveListToString = function(moveList) {
             return moveList.map(function(move) {
-              return move.face + (move.ccw?"'":"");
+              return move.face + (move.count==2?"2":"") + (move.inverse?"'":"");
             }).join(" ");
         }
     }
@@ -974,24 +979,24 @@
         if (!isAnimating) {
             isAnimating = true;
             rubiksCube.perform([
-                {face:"R", ccw:false},
-                {face:"R", ccw:true},
-                {face:"L", ccw:false},
-                {face:"L", ccw:true},
-                {face:"U", ccw:false},
-                {face:"U", ccw:true},
-                {face:"D", ccw:false},
-                {face:"D", ccw:true},
-                {face:"F", ccw:false},
-                {face:"F", ccw:true},
-                {face:"B", ccw:false},
-                {face:"B", ccw:true},
-                {face:"M", ccw:false},
-                {face:"M", ccw:true},
-                {face:"E", ccw:false},
-                {face:"E", ccw:true},
-                {face:"S", ccw:false},
-                {face:"S", ccw:true} 
+                {face:"R", inverse:false},
+                {face:"R", inverse:true},
+                {face:"L", inverse:false},
+                {face:"L", inverse:true},
+                {face:"U", inverse:false},
+                {face:"U", inverse:true},
+                {face:"D", inverse:false},
+                {face:"D", inverse:true},
+                {face:"F", inverse:false},
+                {face:"F", inverse:true},
+                {face:"B", inverse:false},
+                {face:"B", inverse:true},
+                {face:"M", inverse:false},
+                {face:"M", inverse:true},
+                {face:"E", inverse:false},
+                {face:"E", inverse:true},
+                {face:"S", inverse:false},
+                {face:"S", inverse:true} 
                 ]);
             return;
         }
@@ -1021,7 +1026,7 @@
                 randomMove = moves[moveIndex];
                 prevIndex = moveIndex;
                 inverse = Math.random() < 0.5;
-                moveList.push({face:randomMove, ccw:inverse});            
+                moveList.push({face:randomMove, inverse:inverse});            
             }
             rubiksCube.perform(moveList);
         }
@@ -1036,6 +1041,18 @@
 
             var alg = alg.replace(/ /g, '');
             alg = alg.replace(/'/g,'3');
+            alg = alg.replace(/(.)2/g,'$1$1');
+            // inverse double layer moves
+            alg = alg.replace(/x3/g,"r3L");
+            alg = alg.replace(/y3/g,"u3D");
+            alg = alg.replace(/z3/g,"f3B");
+            alg = alg.replace(/u3/g,"U3E1");
+            alg = alg.replace(/d3/g,"D3E3");
+            alg = alg.replace(/f3/g,"F3S3");
+            alg = alg.replace(/b3/g,"B3S1");
+            alg = alg.replace(/l3/g,"L3M3");
+            alg = alg.replace(/r3/g,"R3M1");
+            // double layer moves
             alg = alg.replace(/x/g,'rL3');
             alg = alg.replace(/y/g,'uD3');
             alg = alg.replace(/z/g,'fB3');
@@ -1045,6 +1062,7 @@
             alg = alg.replace(/b/g,'B1S3');
             alg = alg.replace(/l/g,'L1M1');
             alg = alg.replace(/r/g,'R1M3');
+            // add count where necessary
             alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/g,"$11$2");
             alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/g,"$11$2");
             alg = alg.replace(/([0-9])([LRUDFBMESxyz])/g,"$1,$2");
@@ -1054,7 +1072,7 @@
                   var n = 1*el.charAt(1);
                   return {
                       face:el.charAt(0),
-                      ccw: n==3,
+                      inverse: n==3,
                       count:(""+n).replace(3,1)}
                 });
             rubiksCube.perform(moveList);
@@ -1077,9 +1095,9 @@
                 doubleMove = true;
             var layer = control.charAt(0);
             var moveList = [];
-            moveList.push({face:layer, ccw:prime});            
+            moveList.push({face:layer, inverse:prime});            
             if (doubleMove) {
-                moveList.push({face:layer, ccw:prime});            
+                moveList.push({face:layer, inverse:prime});            
             }
             rubiksCube.perform(moveList);
         });
