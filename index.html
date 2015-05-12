@@ -14,7 +14,7 @@
         <script src="js/gl-matrix-min.js"></script>
         <script src="js/models.js"></script>
         <script src="js/rubiks.js"></script>
-        <script id='fragmentShader' type='x-shader/x-fragment'>
+        <script id="fragmentShader" type="x-shader/x-fragment">
             varying highp vec4 position;
             varying highp vec3 normal;
 
@@ -43,7 +43,7 @@
                 }
             }
         </script>
-        <script id='vertexShader' type='x-shader/x-vertex'>
+        <script id="vertexShader" type="x-shader/x-vertex">
             attribute vec3 vertexPosition;
             attribute vec3 vertexNormal;
 
@@ -61,32 +61,32 @@
             }
        </script>
     </head>
-    <body class='container'>
-        <div class='row fill'>
-            <div class='col-md-5 fill'>
-                <h3>Rubik's Cube</h3>
-                <h5 class='text-muted'>A WebGL Rubik's Cube</h5>
-                <a href="https://github.com/tinnywang/rubiks-cube"><img src='static/GitHub-Mark-64px.png'></a>
-                <div class='controls'>
-                    <div>Click and drag with <span class='control'>left mouse</span> to rotate a layer</div>
-                    <div>Click and drag with <span class='control'>right mouse</span> to rotate the Rubik's Cube</div>
-                    <div><span class='control'>Space</span> for perspective view</div>
-                    <div><span class='control'>W</span> for front view</div>
-                    <div><span class='control'>A</span> for left view</div>
-                    <div><span class='control'>S</span> for back view</div>
-                    <div><span class='control'>D</span> for right view</div>
-                    <div><span class='control'>E</span> for top view</div>
-                    <div><span class='control'>Q</span> for bottom view</div>
+    <body class="container">
+        <div class="row fill">
+            <div class="col-md-5 fill">
+                <h3>Rubik"s Cube</h3>
+                <h5 class="text-muted">A WebGL Rubik"s Cube</h5>
+                <a href="https://github.com/tinnywang/rubiks-cube"><img src="static/GitHub-Mark-64px.png"></a>
+                <div class="controls">
+                    <div>Click and drag with <span class="control">left mouse</span> to rotate a layer</div>
+                    <div>Click and drag with <span class="control">right mouse</span> to rotate the Rubik"s Cube</div>
+                    <div><span class="control">Space</span> for perspective view</div>
+                    <div><span class="control">W</span> for front view</div>
+                    <div><span class="control">A</span> for left view</div>
+                    <div><span class="control">S</span> for back view</div>
+                    <div><span class="control">D</span> for right view</div>
+                    <div><span class="control">E</span> for top view</div>
+                    <div><span class="control">Q</span> for bottom view</div>
                 </div>
                 <form>
 	                <p>
-	                <button id="reset-cube" type='button' class='btn btn-primary btn-lg'>Reset</button>
-	                <button id="scramble-cube" type='button' class='btn btn-primary btn-lg'>Scramble</button>
+	                <button id="reset-cube" type="button" class="btn btn-primary btn-lg">Reset</button>
+	                <button id="scramble-cube" type="button" class="btn btn-primary btn-lg">Scramble</button>
                 	<label for"scramble-length">Length</label> <input type="number" id="scramble-length" min="1" value="20" />
 					<pre id="moveList" class="@brand-info" style="margin-top:1em">moves will appear here</pre>
 					</p>
 	                <p>
-	                <button id="run-alg" type='button' class='btn btn-primary btn-lg'>Run algorithm</button><br/>
+	                <button id="run-alg" type="button" class="btn btn-primary btn-lg">Run algorithm</button><br/>
                 	<label for"algorithm">Algorithm</label> <input  class="form-control" placeholder="Algorithm" type="text" id="algorithm" />
                 	</p>
                 </form>
@@ -126,8 +126,8 @@
 					</tr>
 				</table>
             </div>
-            <div class='col-md-7 fill'>
-                <canvas id='glcanvas'>
+            <div class="col-md-7 fill">
+                <canvas id="glcanvas">
             </div>
         </div>
     </body>
