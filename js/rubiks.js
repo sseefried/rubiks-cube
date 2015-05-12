@@ -945,8 +945,9 @@
 
     function perspectiveView() {
         mat4.identity(rotationMatrix);
-        mat4.rotateX(rotationMatrix, rotationMatrix, degreesToRadians(45));
-        mat4.rotateY(rotationMatrix, rotationMatrix, degreesToRadians(-45));
+        mat4.rotateX(rotationMatrix, rotationMatrix, degreesToRadians(60));
+        mat4.rotateY(rotationMatrix, rotationMatrix, degreesToRadians(-60));
+        mat4.rotateZ(rotationMatrix, rotationMatrix, degreesToRadians(20));
     }
 
     function togglePerspective(event) {
