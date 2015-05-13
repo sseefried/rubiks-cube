@@ -25,7 +25,7 @@
             uniform highp vec4 specular;
             uniform highp float shininess;
 
-            const highp vec4 lightPosition = vec4(0, -3, -6, 1); // point light
+            const highp vec4 lightPosition = vec4(-20, -20, -20, 1); // point light
             const highp vec4 lightColor = vec4(1, 1, 1, 1);
 
             void main(void) {
@@ -126,8 +126,8 @@
 					</tr>
 				</table>
             </div>
-            <div class="col-md-7 fill">
-                <canvas id="glcanvas">
+            <div class="col-md-7 fill" width="400" height="400">
+                <canvas id="glcanvas" width="400" height="400">
             </div>
         </div>
     </body>
