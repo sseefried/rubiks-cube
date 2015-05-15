@@ -516,13 +516,15 @@
 
         this.reset = function() {
             this.init();            
-            isInitializing = true;
             var alg = $('#glcanvas').data('alg');
+            perspectiveView();
             if (alg) {
+                isInitializing = true;
                 this.degrees = 90;
                 doAlgorithm(alg);
-                perspectiveView();
             }
+            else
+                isInitializing = false;
         };
 
     }
@@ -676,7 +678,6 @@
             'black': [0, -1, 0],
             'yellow': [0, 1, 0]
         }
-
         this.init = function() {
             this.initTextureFramebuffer();
             this.initBuffers();
