@@ -1109,7 +1109,6 @@
 
             var alg = alg.replace(/ /g, '');
             alg = alg.replace(/'/g,'3');
-            alg = alg.replace(/(.)2/g,'$1$1');
             // inverse double layer moves
             alg = alg.replace(/x3/g,"r3L");
             alg = alg.replace(/y3/g,"u3D");
