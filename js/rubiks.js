@@ -77,6 +77,7 @@
                     }
                 }
             }
+            this.initCenters();
         }
 
         this.initTextureFramebuffer = function() {
@@ -128,6 +129,19 @@
             this.stickerFacesBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.stickerFacesBuffer);
             gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(stickerModel.faces), gl.STATIC_DRAW);
+        }
+
+
+        this.initCenters = function() {
+            this.centerCubes = {
+                left:   this.cubes[1][1][2],
+                right:  this.cubes[1][1][0],
+                up:     this.cubes[1][0][1],
+                down:   this.cubes[1][2][1],
+                front:  this.cubes[0][1][1],
+                back:   this.cubes[2][1][1],
+                core:   this.cubes[1][1][1]
+            }
         }
 
         this.init();
@@ -348,17 +362,6 @@
                     setTimeout(function() {that.doTransform(params)}, delay);
         }
 
-
-        this.centerCubes = {
-            left:   this.cubes[1][1][2],
-            right:  this.cubes[1][1][0],
-            up:     this.cubes[1][0][1],
-            down:   this.cubes[1][2][1],
-            front:  this.cubes[0][1][1],
-            back:   this.cubes[2][1][1],
-            core:   this.cubes[1][1][1]
-        }
-
         this.centerColors = {
             left:   'blue',
             right:  'green',
@@ -495,6 +498,11 @@
               return move.face + (move.count==2?"2":"") + (move.inverse?"'":"");
             }).join(" ");
         }
+
+        this.reset = function() {
+            this.init();            
+        };
+
     }
 
     function Cube(rubiksCube, coordinates, color) {
@@ -1148,6 +1156,7 @@
             canvas.height = canvas.clientHeight;
         });
         initControls();
+        rubiksCube.reset();
         $('#reset-cube').click(function() {rubiksCube.init()});
         $('#scramble-cube').click(scramble);
         $('#run-alg').click(function() { doAlgorithm($('#algorithm').val())} );
