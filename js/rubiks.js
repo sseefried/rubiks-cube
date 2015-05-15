@@ -216,7 +216,27 @@
             }
             if (cubes.length == 9) {
                 this.rotatedCubes = cubes;
+                // is this a slice layer?
+                var i;
+                var that = this;
+                cubes.forEach(function(cube, i, cubes) {
+                    if (cube.stickers.length==0) {
+                        var slices = ['S', 'E', 'M']; //x,y,z
+                        var slice = slices[that.axisConstant];
+                        var x = that.rotationAxis[X_AXIS];
+                        var y = that.rotationAxis[Y_AXIS];
+                        var z = that.rotationAxis[Z_AXIS];
+                        var sum = x+y+z;
+                        var inverse = false;
+                        inverse |= slice=='M' && sum==1;
+                        inverse |= slice=='E' && sum==1;
+                        inverse |= slice=='S' && sum==-1; // silly cube notation
+                        // update centers for slice moves
+                        that.updateCenters(slice, inverse);
+                    }
+                    });
             }
+        
         }
 
         /*
@@ -339,6 +359,16 @@
             core:   this.cubes[1][1][1]
         }
 
+        this.centerColors = {
+            left:   'blue',
+            right:  'green',
+            up:     'yellow',
+            down:   'white',
+            front:  'red',
+            back:   'orange',
+            core:   'black'
+        }
+
         /* rotate defined centers with a slice layer */
         this.updateCenters = function(layer, inverse) {
             var c=this.centerCubes;
@@ -431,8 +461,6 @@
             this.selectedCube = layers[move.face].cubie;
             this.axisConstant = layers[move.face].axis;
             this.rotationAxis = layers[move.face].rotation;
-            // update centers for e.g. slice moves
-            this.updateCenters(move.face, move.inverse);
             // not a true counter clockwise
             // but instead a ccw over this axis seen from origin
             if (layers[move.face].ccw) 
@@ -1069,6 +1097,7 @@
             alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/g,"$11$2");
             alg = alg.replace(/([0-9])([LRUDFBMESxyz])/g,"$1,$2");
             alg = alg.replace(/([LRUDFBMESxyz])$/,"$11");
+
             var moveList = alg.split(",")
                 .map(function(el){
                   var n = 1*el.charAt(1);

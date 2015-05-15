@@ -19,7 +19,7 @@ canvas {
 }
 
 #controls td {
-	padding:1em; 
+	padding:.3em; 
 	text-align:center;
 }
 #controls td .btn:hover {
