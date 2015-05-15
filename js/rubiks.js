@@ -24,9 +24,10 @@
     var new_coordinates;
     var isRotating = false;
     var isAnimating = false;
-    var eye = [5, 5, -15];
+    var eye = [20, 15, -10];
     var center = [0, 0, 0];
     var up = [0, 1, 0];
+    var fov = -13;
 
     var modelViewMatrix = mat4.create();
     var projectionMatrix = mat4.create();
@@ -135,7 +136,7 @@
             gl.viewport(0, 0, canvas.width, canvas.height);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            mat4.perspective(projectionMatrix, 30, canvas.width / canvas.height, 0.1, 100.0);
+            mat4.perspective(projectionMatrix, fov, canvas.width / canvas.height, 0.1, 100.0);
             mat4.identity(modelViewMatrix);
             mat4.lookAt(modelViewMatrix, eye, center, up);
             mat4.multiply(modelViewMatrix, modelViewMatrix, rotationMatrix);
@@ -159,7 +160,7 @@
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             gl.uniform1i(shaderProgram.lighting, 0);
 
-            mat4.perspective(projectionMatrix, 30, canvas.width / canvas.height, 0.1, 100.0);
+            mat4.perspective(projectionMatrix, fov, canvas.width / canvas.height, 0.1, 100.0);
             mat4.identity(modelViewMatrix);
             mat4.lookAt(modelViewMatrix, eye, center, up);
             mat4.multiply(modelViewMatrix, modelViewMatrix, rotationMatrix);
@@ -182,7 +183,7 @@
             gl.viewport(0, 0, canvas.width, canvas.height);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            mat4.perspective(projectionMatrix, 30, canvas.width / canvas.height, 0.1, 100.0);
+            mat4.perspective(projectionMatrix, fov, canvas.width / canvas.height, 0.1, 100.0);
             mat4.identity(modelViewMatrix);
             mat4.lookAt(modelViewMatrix, eye, center, up);
             mat4.multiply(modelViewMatrix, modelViewMatrix, rotationMatrix);
@@ -945,9 +946,9 @@
 
     function perspectiveView() {
         mat4.identity(rotationMatrix);
-        mat4.rotateX(rotationMatrix, rotationMatrix, degreesToRadians(60));
-        mat4.rotateY(rotationMatrix, rotationMatrix, degreesToRadians(-60));
-        mat4.rotateZ(rotationMatrix, rotationMatrix, degreesToRadians(20));
+        mat4.rotateX(rotationMatrix, rotationMatrix, degreesToRadians(-50));
+        mat4.rotateY(rotationMatrix, rotationMatrix, degreesToRadians(210));
+        mat4.rotateZ(rotationMatrix, rotationMatrix, degreesToRadians(-100));
     }
 
     function togglePerspective(event) {
