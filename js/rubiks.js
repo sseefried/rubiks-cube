@@ -24,6 +24,7 @@
     var new_coordinates;
     var isRotating = false;
     var isAnimating = false;
+    var isInitializing = true;
     var eye = [20, 15, -10];
     var center = [0, 0, 0];
     var up = [0, 1, 0];
@@ -261,10 +262,11 @@
                 this.rotationAngle = 0;
                 isRotating = false;
                 isAnimating = false;
-                this.degrees = DEGREES;
+                this.degrees = isInitializing ? 90: DEGREES;
                 return;
             }
 
+            if (!isInitializing)
             this.degrees = 3 + DEGREES * $.easing.easeOutCubic(0, this.rotationAngle, 0, 1, 90);
             if (this.rotationAngle+this.degrees > 90) {
                 this.degrees = 90 - this.rotationAngle;
@@ -488,9 +490,22 @@
                 that.setNormals = 'MESxyz'.match(move.face)!=null;
                 setTimeout(function() {that.perform(clone)}, delay);
             }
-            else
+            else {
                 if (alg.length > 0)
                     setTimeout(function() {that.perform(alg)}, delay);        
+                else
+                    this.algDone();
+            }
+        }
+
+        this.algDone = function() {
+            var c = this;
+            if (isRotating)
+                setTimeout(c.algDone, 50);
+            else {
+                isInitializing = false;
+                this.degrees = DEGREES;
+            }
         }
 
         this.moveListToString = function(moveList) {
@@ -501,6 +516,13 @@
 
         this.reset = function() {
             this.init();            
+            isInitializing = true;
+            var alg = $('#glcanvas').data('alg');
+            if (alg) {
+                this.degrees = 90;
+                doAlgorithm(alg);
+                perspectiveView();
+            }
         };
 
     }
@@ -828,7 +850,9 @@
 
         rubiksCube.drawToNormalsFramebuffer();
         rubiksCube.drawToPickingFramebuffer(); 
+        if (!isInitializing) {
         rubiksCube.draw();
+    }
     }
 
     function tick() {
@@ -1042,6 +1066,7 @@
 
     function scramble(count) {
         var count;
+        isInitializing = false;
         if (!isAnimating) {
             isAnimating = true;
 
@@ -1157,8 +1182,8 @@
         });
         initControls();
         rubiksCube.reset();
-        $('#reset-cube').click(function() {rubiksCube.init()});
+        $('#reset-cube').click(function() {rubiksCube.reset()});
         $('#scramble-cube').click(scramble);
-        $('#run-alg').click(function() { doAlgorithm($('#algorithm').val())} );
+        $('#run-alg').click(function() {isInitializing = false; doAlgorithm($('#algorithm').val());});
     });
 })();
