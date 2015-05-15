@@ -62,6 +62,7 @@
         this.pickingRenderBuffer = null;
         this.normalsCube = new NormalsCube();
         this.cubes = new Array(3);
+        this.currentMove = {face:'', count:0, inverse:false};
 
         this.init = function() {
             this.initTextureFramebuffer();
@@ -257,20 +258,21 @@
         /*
          * Rotates this.rotatedCubes around this.rotationAxis by this.degrees.
          */
-        this.rotateLayer = function() {
-            if (Math.abs(this.rotationAngle) == 90) {
+        this.rotateLayer = function(isDouble) {
+            var fullTurn = isDouble ? 180 : 90;
+            if (Math.abs(this.rotationAngle) == fullTurn) {
                 this.rotationAngle = 0;
                 isRotating = false;
                 isAnimating = false;
-                this.degrees = isInitializing ? 90: DEGREES;
+                this.degrees = isInitializing ? fullTurn: DEGREES;
                 return;
             }
 
             if (!isInitializing)
-            this.degrees = 3 + DEGREES * $.easing.easeOutCubic(0, this.rotationAngle, 0, 1, 90);
-            if (this.rotationAngle+this.degrees > 90) {
-                this.degrees = 90 - this.rotationAngle;
-                this.rotationAngle = 90;
+                this.degrees = 3 + DEGREES * $.easing.easeOutCubic(0, this.rotationAngle, 0, 1, fullTurn);
+            if (this.rotationAngle + this.degrees > fullTurn) {
+                this.degrees = fullTurn - this.rotationAngle;
+                this.rotationAngle = fullTurn;
             }
             else {
                 this.rotationAngle += this.degrees;
@@ -485,8 +487,8 @@
                 var move = clone.shift();
                 if (!move.count)
                     move.count = 1;
-                for (var i=0;i<move.count;i++)
                     this.move(move);                
+                this.currentMove = move;
                 that.setNormals = 'MESxyz'.match(move.face)!=null;
                 setTimeout(function() {that.perform(clone)}, delay);
             }
@@ -846,7 +848,7 @@
 
     function drawScene() {
         if (isRotating) {
-            rubiksCube.rotateLayer();
+            rubiksCube.rotateLayer(rubiksCube.currentMove.count > 1);
         }
 
         rubiksCube.drawToNormalsFramebuffer();
@@ -1081,7 +1083,8 @@
             var moveIndex = 0;
             var prevIndex = 0;
             var randomMove;
-            var inverse;
+            var inverse = false;
+            var moveCount = 1;
             for (var i = 0; i < count; i++) {
                 moveIndex = Math.floor(Math.random() * moves.length);
                 while (moveIndex/2 == prevIndex/2) {
@@ -1089,8 +1092,9 @@
                 }
                 randomMove = moves[moveIndex];
                 prevIndex = moveIndex;
-                inverse = Math.random() < 0.5;
-                moveList.push({face:randomMove, inverse:inverse});            
+                moveCount = 1 + Math.floor(Math.random()*2);
+                inverse = moveCount==1 && Math.random() < 0.5;
+                moveList.push({face:randomMove, inverse:inverse, count:moveCount});            
             }
             rubiksCube.perform(moveList);
         }
@@ -1160,10 +1164,7 @@
                 doubleMove = true;
             var layer = control.charAt(0);
             var moveList = [];
-            moveList.push({face:layer, inverse:prime});            
-            if (doubleMove) {
-                moveList.push({face:layer, inverse:prime});            
-            }
+            moveList.push({face:layer, inverse:prime, count:doubleMove?2:1});            
             rubiksCube.perform(moveList);
         });
     }
