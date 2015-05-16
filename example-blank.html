@@ -9,12 +9,11 @@
         <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
         <link rel="stylesheet" href="static/main.css">
         <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-<!--        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.3/jquery.easing.min.js"></script> -->
         <script src="js/jquery.easing.min.js"></script>
         <script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
-        <script src="js/gl-matrix-min.js"></script>
-        <script src="js/models.js"></script>
-        <script src="js/rubiks.js"></script>
+        <script type="text/javascript" src="js/gl-matrix-min.js"></script>
+        <script type="text/javascript" src="js/models.js"></script>
+        <script type="text/javascript" src="js/rubiks.js"></script>
         <script id="fragmentShader" type="x-shader/x-fragment">
             varying highp vec4 position;
             varying highp vec3 normal;
@@ -67,7 +66,7 @@
             <div class="col-md-5 fill">
                 <h3>Rubik's Cube</h3>
                 <h5 class="text-muted">A WebGL Rubik's Cube</h5>
-                <a href="https://github.com/tinnywang/rubiks-cube"><img src="static/GitHub-Mark-64px.png"></a>
+                <a href="https://github.com/blonkm/rubiks-cube"><img src="static/GitHub-Mark-64px.png" alt="github logo"></a>
                 <div class="controls">
                     <div>Click and drag with <span class="control">left mouse</span> to rotate a layer</div>
                     <div>Click and drag with <span class="control">right mouse</span> to rotate the Rubik"s Cube</div>
@@ -80,15 +79,15 @@
                     <div><span class="control">Q</span> for bottom view</div>
                 </div>
                 <form>
-	                <p>
+	                <div>
 	                <button id="reset-cube" type="button" class="btn btn-primary btn-lg">Reset</button>
 	                <button id="scramble-cube" type="button" class="btn btn-primary btn-lg">Scramble</button>
-                	<label for"scramble-length">Length</label> <input type="number" id="scramble-length" min="1" value="20" />
-					<pre id="moveList" class="@brand-info" style="margin-top:1em">moves will appear here</pre>
-					</p>
+                            <label for="scramble-length">Length</label> <input type="number" id="scramble-length" min="1" value="20" />
+                            <div id="moveList" class="well" style="margin-top:1em">moves will appear here</div>
+			</div>
 	                <p>
 	                <button id="run-alg" type="button" class="btn btn-primary btn-lg">Run algorithm</button><br/>
-                	<label for"algorithm">Algorithm</label> <input  class="form-control" placeholder="Algorithm" type="text" id="algorithm" />
+                            <label for="algorithm">Algorithm</label> <input  class="form-control" placeholder="Algorithm" type="text" id="algorithm" />
                 	</p>
                 </form>
 				<table id="controls">
@@ -127,7 +126,7 @@
 					</tr>
 				</table>
             </div>
-            <div class="col-md-7 fill" width="400" height="400">
+            <div class="col-md-7 fill" style="width:400px; height:400px;">
                 <canvas id="glcanvas" width="400" height="400">
             </div>
         </div>
