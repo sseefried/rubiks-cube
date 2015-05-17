@@ -28,12 +28,12 @@ $alg = filter_input(INPUT_GET,'alg',FILTER_SANITIZE_STRING);
             uniform highp vec4 specular;
             uniform highp float shininess;
 
-            const highp vec4 lightPosition = vec4(-20, -20, -20, 1); // point light
-            const highp vec4 lightColor = vec4(1, 1, 1, 1);
+            const highp vec4 lightPosition = vec4(-1.,1.,-1., 1);
+            const highp vec4 lightColor = vec4(.2,.2,.2,1);
 
             void main(void) {
                 if (lighting) {
-                    highp vec3 position = 0.5*position.xyz / position.w;
+                    highp vec3 position = position.xyz / position.w;
                     highp vec3 eyeDirection = normalize(eyePosition - position);
                     highp vec3 lightPosition = lightPosition.xyz / lightPosition.w;
                     highp vec3 lightDirection = normalize(lightPosition - position);

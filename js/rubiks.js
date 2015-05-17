@@ -782,7 +782,7 @@
             console.log("Your browser doesn't support WebGL.")
                 return null;
         }
-        gl = canvas.getContext('webgl', {preserveDrawingBuffer: true}) || canvas.getContext('experimental-webgl', {preserveDrawingBuffer: true});
+        gl = canvas.getContext('webgl', {preserveDrawingBuffer: true, antialias:true}) || canvas.getContext('experimental-webgl', {preserveDrawingBuffer: true, antialias:true});
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
         if (!gl) {
@@ -1187,4 +1187,5 @@
         $('#scramble-cube').click(scramble);
         $('#run-alg').click(function() {isInitializing = false; doAlgorithm($('#algorithm').val());});
     });
+    
 })();
