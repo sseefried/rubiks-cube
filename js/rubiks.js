@@ -62,6 +62,7 @@
         this.pickingRenderBuffer = null;
         this.normalsCube = new NormalsCube();
         this.cubes = new Array(3);
+        this.noMove = {face:'', count:0, inverse:false};
         this.currentMove = {face:'', count:0, inverse:false};
 
         this.init = function() {
@@ -501,11 +502,12 @@
         }
 
         this.algDone = function() {
-            var c = this;
-            if (isRotating)
-                setTimeout(c.algDone, 50);
+            if (isRotating) {
+                setTimeout(rubiksCube.algDone, 100);
+            }
             else {
                 isInitializing = false;
+                rubiksCube.currentMove = rubiksCube.noMove;
                 this.degrees = DEGREES;
             }
         }
@@ -973,6 +975,7 @@
     function endRotate(event) {
         if (event.button == LEFT_MOUSE && leftMouseDown) { // left mouse
             leftMouseDown = false;
+            rubiksCube.algDone();
         } else if (event.button == RIGHT_MOUSE) { // right mouse
             rightMouseDown = false;
         }
