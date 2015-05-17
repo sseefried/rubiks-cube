@@ -34,7 +34,7 @@
     var projectionMatrix = mat4.create();
     var rotationMatrix = mat4.create();
 
-    var DEGREES = 15;
+    var DEGREES = 6;
     var MARGIN_OF_ERROR = 1e-3;
     var X_AXIS = 0;
     var Y_AXIS = 1;
@@ -270,7 +270,7 @@
             }
 
             if (!isInitializing)
-                this.degrees = 3 + DEGREES * $.easing.easeOutCubic(0, this.rotationAngle, 0, 1, fullTurn);
+                this.degrees = 3 + DEGREES * $.easing.easeOutExpo(0, this.rotationAngle, 0, 1, fullTurn);
             if (this.rotationAngle + this.degrees > fullTurn) {
                 this.degrees = fullTurn - this.rotationAngle;
                 this.rotationAngle = fullTurn;
