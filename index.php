@@ -10,7 +10,7 @@ if ($algType!='generator' && $algType!='solver') {
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <title>Rubik's Cube</title>
+        <title>GLube - Rubik's Cube</title>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
@@ -71,12 +71,12 @@ if ($algType!='generator' && $algType!='solver') {
     <body class="container">
         <div class="row fill">
             <div class="col-md-5 fill">
-                <h3>Rubik's Cube</h3>
-                <h5 class="text-muted">A WebGL Rubik's Cube</h5>
+                <h3>GLube - Rubik's Cube</h3>
+                <h5 class="text-muted">GLube - A Rubik's Cube with WebGL</h5>
                 <a href="https://github.com/blonkm/rubiks-cube"><img src="static/GitHub-Mark-64px.png" alt="github logo"></a>
                 <div class="controls">
                     <div>Click and drag with <span class="control">left mouse</span> to rotate a layer</div>
-                    <div>Click and drag with <span class="control">right mouse</span> to rotate the Rubik"s Cube</div>
+                    <div>Click and drag with <span class="control">right mouse</span> to rotate the Rubik's Cube</div>
                     <div><span class="control">Space</span> for perspective view</div>
                     <div><span class="control">W</span> for front view</div>
                     <div><span class="control">A</span> for left view</div>
