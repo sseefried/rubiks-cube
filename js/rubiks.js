@@ -215,7 +215,7 @@
          * Sets this.rotatedCubes to an array of cubes that share the same AXIS coordinate as this.selectedCube.
          * AXIS is 0, 1, or 2 for the x-, y-, or z-coordinate.
          */
-        this.setRotatedCubes = function() {
+        this.setRotatedCubes = function(move) {
             if (!this.rotationAxis) {
                 return;
             }
@@ -249,7 +249,11 @@
                         inverse |= slice=='E' && sum==1;
                         inverse |= slice=='S' && sum==-1; // silly cube notation
                         // update centers for slice moves
+                        var m = (move===undefined) ? 1 : move.count;
+                        while (m-- >0) {
                         that.updateCenters(slice, inverse);
+                    }
+                        
                     }
                     });
             }
@@ -476,14 +480,14 @@
             if (inverse) {
                 vec3.scale(this.rotationAxis, this.rotationAxis, -1);
             }
-            this.setRotatedCubes();
+            this.setRotatedCubes(move);
             isRotating = true;
         }
 
         this.perform = function(alg) {
             var that = this;
             var delay = 10;
-            if (!isRotating) {
+            if (!isRotating && alg.length > 0) {
                 var clone = alg.slice(0);
                 var move = clone.shift();
                 if (!move.count)
