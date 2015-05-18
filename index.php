@@ -1,5 +1,9 @@
 <?php
 $alg = filter_input(INPUT_GET,'alg',FILTER_SANITIZE_STRING);
+$algType = filter_input(INPUT_GET,'type',FILTER_SANITIZE_STRING);
+if ($algType!='generator' && $algType!='solver') {
+    $algType = 'solver';
+}
 ?>
 <!DOCTYPE html>
 <html class="no-js">
@@ -130,7 +134,7 @@ $alg = filter_input(INPUT_GET,'alg',FILTER_SANITIZE_STRING);
 				</table>
             </div>
             <div class="col-md-7 fill" style="width:400px; height:400px;">
-                <canvas id="glcanvas" width="400" height="400" data-alg="<?php echo $alg?>"></canvas>
+                <canvas id="glcanvas" width="400" height="400" data-alg="<?php echo $alg?>" data-type="<?php echo $algType?>"></canvas>
             </div>
         </div>
     </body>

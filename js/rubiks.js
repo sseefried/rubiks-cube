@@ -518,14 +518,28 @@
             }).join(" ");
         }
 
+        this.inverseMoveList = function(moves) {
+            return moves.reverse().map(function(move) {
+              return {face:move.face, count:move.count, inverse:!move.inverse};
+            });
+        }
+        
         this.reset = function() {
             this.init();            
             var alg = $('#glcanvas').data('alg');
+            var algType = $('#glcanvas').data('type');
             perspectiveView();
             if (alg) {
-                isInitializing = true;
                 this.degrees = 90;
-                doAlgorithm(alg);
+                $('#algorithm').val(alg);
+                var moves = parseAlgorithm(alg);
+                if (algType === 'solver') {
+                isInitializing = true;
+                    moves = this.inverseMoveList(moves);
+                    doAlgorithm(moves);
+                }
+                else
+                    isInitializing = false;
             }
             else
                 isInitializing = false;
@@ -1106,12 +1120,12 @@
         return ret;
     }
 
-    function doAlgorithm(alg) {
-        if (!isAnimating) {
-            isAnimating = true;
-
-            var alg = alg.replace(/ /g, '');
+    function parseAlgorithm(algorithm) {
+        var alg = algorithm;
+        alg = alg.replace(/ /g, '');
             alg = alg.replace(/'/g,'3');
+        alg = alg.replace(/-/g,'3');
+        alg = alg.replace(/([^LRUDFBMESxyz0123456789])/gi,"");
             // inverse double layer moves
             alg = alg.replace(/x3/g,"r3L");
             alg = alg.replace(/y3/g,"u3D");
@@ -1146,7 +1160,15 @@
                       inverse: n==3,
                       count:(""+n).replace(3,1)}
                 });
-            rubiksCube.perform(moveList);
+
+        return moveList;
+    }
+    
+    function doAlgorithm(moves) {
+        if (!isAnimating) {
+            isAnimating = true;
+
+            rubiksCube.perform(moves);
         }
     }
     
@@ -1188,7 +1210,11 @@
         rubiksCube.reset();
         $('#reset-cube').click(function() {rubiksCube.reset()});
         $('#scramble-cube').click(scramble);
-        $('#run-alg').click(function() {isInitializing = false; doAlgorithm($('#algorithm').val());});
+        $('#run-alg').click(function() {
+            isInitializing = false; 
+            var moves = parseAlgorithm($('#algorithm').val());
+            doAlgorithm(moves);
+        });  
     });
     
 })();
