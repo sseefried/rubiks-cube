@@ -1030,11 +1030,12 @@
 
     function rotate(event) {
         if (rightMouseDown) {
-            x_new_right = event.pageX;
-            y_new_right = event.pageY;
-            var delta_x = (x_new_right - x_init_right) / 50;
-            var delta_y = (y_new_right - y_init_right) / 50;
-            var axis = [delta_y, -delta_x, 0];
+            x_init_right = event.clientX;
+            y_init_right = event.clientY;
+            var delta_x = parseInt((x_new_right - x_init_right) * 360 / this.width);
+            var delta_y = parseInt((y_new_right - y_init_right) * 360 / this.width);
+   
+            var axis = [-delta_y, delta_x, 0];
             var degrees = Math.sqrt(delta_x * delta_x + delta_y * delta_y);
             var newRotationMatrix = mat4.create();
             mat4.rotate(newRotationMatrix, newRotationMatrix, degreesToRadians(degrees), axis);
@@ -1048,6 +1049,8 @@
             rubiksCube.setRotatedCubes();
             isRotating = rubiksCube.rotatedCubes && rubiksCube.rotationAxis;
         }
+        x_new_right = event.clientX;
+        y_new_right = event.clientY;    
     }
 
     function startRotate(event) {
