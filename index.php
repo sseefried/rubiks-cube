@@ -4,6 +4,7 @@ $algType = filter_input(INPUT_GET,'type',FILTER_SANITIZE_STRING);
 if ($algType!='generator' && $algType!='solver') {
     $algType = 'solver';
 }
+$stickers = filter_input(INPUT_GET,'stickers', FILTER_SANITIZE_STRING);
 ?>
 <!DOCTYPE html>
 <html class="no-js">
@@ -78,12 +79,10 @@ if ($algType!='generator' && $algType!='solver') {
                     <div>Click and drag with <span class="control">left mouse</span> to rotate a layer</div>
                     <div>Click and drag with <span class="control">right mouse</span> to rotate the Rubik's Cube</div>
                     <div><span class="control">Space</span> for perspective view</div>
-                    <div><span class="control">W</span> for front view</div>
-                    <div><span class="control">A</span> for left view</div>
-                    <div><span class="control">S</span> for back view</div>
-                    <div><span class="control">D</span> for right view</div>
-                    <div><span class="control">E</span> for top view</div>
-                    <div><span class="control">Q</span> for bottom view</div>
+                    <div><strong>Parameters (in url, e.g. ?type=solver):</strong></div>
+                    <div><span class="control">stickers</span> CROSS, FL, F2L, PLL, OLL, FL</div>
+                    <div><span class="control">alg</span> initial algorithm to perform</div>
+                    <div><span class="control">type</span> generator, or solver</div>
                 </div>
                 <form>
 	                <div>
@@ -134,7 +133,7 @@ if ($algType!='generator' && $algType!='solver') {
 				</table>
             </div>
             <div class="col-md-7 fill" style="width:400px; height:400px;">
-                <canvas id="glcanvas" width="400" height="400" data-alg="<?php echo $alg?>" data-type="<?php echo $algType?>"></canvas>
+                <canvas id="glcanvas" width="400" height="400" data-alg="<?php echo $alg?>" data-type="<?php echo $algType?>" data-stickers="<?php echo $stickers?>"></canvas>
             </div>
         </div>
     </body>

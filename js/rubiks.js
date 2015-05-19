@@ -528,10 +528,84 @@
             });
         }
         
+        this.setStickers = function(stickers) {
+            var positions = "FUL,FU,FUR,FL,F,FR,FDL,FD,FDR,RFU,RU,RBU,RF,R,RB,RFD,RD,RBD,DLF,DF,DRF,DL,D,DR,DLB,DB,DRB,BUR,BU,BUL,BR,B,BL,BDR,BD,BDL,LBU,LU,LFU,LB,L,LF,LBD,LD,LFD,ULB,UB,URB,UL,U,UR,ULF,UF,URF".split(',');
+
+            var colors = {
+                r:'red',
+                g:'green',
+                w:'white',
+                o:'orange',
+                b:'blue',
+                y:'yellow',
+                x:'gray'
+            };
+            var r,g,b;
+            var cube;
+            var x,y,z;
+            var position;
+            
+            var arrayRotate = function(arr, reverse){
+              if(reverse)
+                arr.push(arr.shift());
+              else
+                arr.unshift(arr.pop());
+              return arr;
+            } 
+
+            for (var r = 0; r < 3; r++) {
+                for (var g = 0; g < 3; g++) {
+                    for (var b = 0; b < 3; b++) {
+                        cube = this.cubes[r][g][b];
+                        x = cube.coordinates[0];
+                        y = cube.coordinates[1];
+                        z = cube.coordinates[2];
+                        var faces=[];
+                        if (x === -1) faces.push('F'); else if (x === 1) faces.push('B');
+                        if (y === -1) faces.push('U'); else if (y === 1) faces.push('D');
+                        if (z === -1) faces.push('R'); else if (z === 1) faces.push('L');
+                        // faces.length=1 => center
+                        // faces.length=2 => edge
+                        // faces.length=3 => corner
+                        position = faces;
+                        faces.forEach(function(value, key) {                            
+                            var index = positions.indexOf(position.join(''));
+                            var ch = stickers.slice(index, index+1);
+                            var el = cube.stickers[key];
+                            var cr = parseInt(el.color[0]*255.0);
+                            var cg = parseInt(el.color[1]*255.0);
+                            var cb = parseInt(el.color[2]*255.0);
+                            cube.stickers[key].color = cube.COLORS[colors[ch]];
+                            position = arrayRotate(position, true);
+                        });
+                         
+                        }
+                    }
+                }
+            };
+        
+        
         this.reset = function() {
             this.init();            
             var alg = $('#glcanvas').data('alg');
             var algType = $('#glcanvas').data('type');
+            // default order of RubikPlayer faces is F, R, D, B, L, U
+            // we start with yellow on top
+            var defaultStickers = "rrrrrrrrrgggggggggwwwwwwwwwooooooooobbbbbbbbbyyyyyyyyy";
+            var stickers = $('#glcanvas').data('stickers') || defaultStickers; 
+            var stickerSets = {
+                CROSS:    "xxxxrxxrxxxxxgxxgxxwxwwwxwxxxxxoxxoxxxxxbxxbxxxxxyxxxx",
+                FL:       "xxxxxxrrrxxxxxxgggwwwwwwwwwxxxxxxoooxxxxxxbbbxxxxxxxxx",
+                F2L:      "xxxrrrrrrxxxggggggwwwwwwwwwxxxooooooxxxbbbbbbxxxxyxxxx",
+                SHORTCUT: "xxxxrrxrrxxxggxggxxwwwwwxwxxxxxoxxoxxxxxbxxbxxxxxyxxxx",
+                OLL:      "xxxrrrrrrxxxggggggwwwwwwwwwxxxooooooxxxbbbbbbyyyyyyyyy",
+                PLL:      "rrrxxxxxxgggxxxxxxxxxxxxxxxoooxxxxxxbbbxxxxxxyyyyyyyyy"
+            };
+            // replace stickers by full definition of set
+            if (stickerSets[stickers.toUpperCase()]) {
+                stickers = stickerSets[stickers.toUpperCase()];
+            }
+            this.setStickers(stickers);
             perspectiveView();
             if (alg) {
                 this.degrees = 90;
@@ -564,7 +638,9 @@
             'orange': [1.0, 0.5, 0.0, 1.0],
             'red': [0.8, 0.1, 0.1, 1.0],
             'white': [1.0, 1.0, 1.0, 1.0],
-            'yellow': [1.0, 1.0, 0.1, 1.0]
+            'yellow': [1.0, 1.0, 0.1, 1.0],
+            'gray': [0.5, 0.5, 0.5, 1.0],
+            'black': [0.0, 0.0, 0.0, 1.0]
         }
 
         this.init = function() {
