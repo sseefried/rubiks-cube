@@ -45,7 +45,7 @@
     var CANVAS_Y_OFFSET = 0;
 
     function RubiksCube() {
-        this.selectedCube = null; // an instance of Cube
+        this.selectedCubes = [];// an instance of Cube
         this.rotatedCubes = null; // an array of Cubes
         this.rotationAxis = null; // a vec3
         this.axisConstant = null; // X_AXIS, Y_AXIS, or Z_AXIS
@@ -212,15 +212,16 @@
         }
 
         /*
-         * Sets this.rotatedCubes to an array of cubes that share the same AXIS coordinate as this.selectedCube.
+         * Sets this.rotatedCubes to an array of cubes that share the same AXIS coordinate as this.selectedCubes.
          * AXIS is 0, 1, or 2 for the x-, y-, or z-coordinate.
          */
         this.setRotatedCubes = function(move) {
             if (!this.rotationAxis) {
                 return;
             }
-            var value = this.selectedCube.coordinates[this.axisConstant];
             var cubes = [];
+            this.selectedCubes.forEach(function(el) {
+                var value = el.coordinates[this.axisConstant];
             for (var r = 0; r < 3; r++) {
                 for (var g = 0; g < 3; g++) {
                     for (var b = 0; b < 3; b++) {
@@ -231,7 +232,8 @@
                     }
                 }
             }
-            if (cubes.length == 9) {
+            }, this);
+            if (cubes.length >= 9) {
                 this.rotatedCubes = cubes;
                 // is this a slice layer?
                 var i;
@@ -257,7 +259,6 @@
                     }
                     });
             }
-        
         }
 
         /*
@@ -309,7 +310,7 @@
             var pixelValues = new Uint8Array(4);
             gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelValues);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            this.selectedCube = this.colorToCube(pixelValues);
+            this.selectedCubes.push(this.colorToCube(pixelValues));
         }
 
         this.setRotationAxis = function(x, y, direction) {
@@ -346,7 +347,7 @@
                 [0, 1, 0],
                 [0, 0, 1]
             ];
-            this.selectedCube = this.cubes[r][g][b];
+            this.selectedCubes.push(this.cubes[r][g][b]);
             this.axisConstant = axis;
             this.rotationAxis = rot[axis];
             if (inverse)
@@ -453,24 +454,41 @@
                 Z: [0, 0, 1]
             };
             var inverse = typeof move.inverse !== 'undefined' ? move.inverse : false;
+            var L = this.centerCubes.left;
+            var R = this.centerCubes.right;
+            var U = this.centerCubes.up;
+            var D = this.centerCubes.down;
+            var F = this.centerCubes.front;
+            var B = this.centerCubes.back;
+            var C = this.centerCubes.core;
 
             var layers = {
-                "L": {cubie:this.centerCubes.left, axis:Z_AXIS, rotation:rot.Z, ccw:true},
-                "R": {cubie:this.centerCubes.right, axis:Z_AXIS, rotation:rot.Z, ccw:false},
+                "L": {cubies:[L], axis:Z_AXIS, rotation:rot.Z, ccw:true},
+                "R": {cubies:[R], axis:Z_AXIS, rotation:rot.Z, ccw:false},
 
-                "U": {cubie:this.centerCubes.up, axis:Y_AXIS, rotation:rot.Y, ccw:false},
-                "D": {cubie:this.centerCubes.down, axis:Y_AXIS, rotation:rot.Y, ccw:true},
+                "U": {cubies:[U], axis:Y_AXIS, rotation:rot.Y, ccw:false},
+                "D": {cubies:[D], axis:Y_AXIS, rotation:rot.Y, ccw:true},
 
-                "F": {cubie:this.centerCubes.front, axis:X_AXIS, rotation:rot.X, ccw:false},
-                "B": {cubie:this.centerCubes.back, axis:X_AXIS, rotation:rot.X, ccw:true},
+                "F": {cubies:[F], axis:X_AXIS, rotation:rot.X, ccw:false},
+                "B": {cubies:[B], axis:X_AXIS, rotation:rot.X, ccw:true},
 
                 // use center of cube for slices
-                "M": {cubie:this.centerCubes.core, axis:Z_AXIS, rotation:rot.Z, ccw:true},
-                "E": {cubie:this.centerCubes.core, axis:Y_AXIS, rotation:rot.Y, ccw:true},
-                "S": {cubie:this.centerCubes.core, axis:X_AXIS, rotation:rot.X, ccw:false}
+                "M": {cubies:[C], axis:Z_AXIS, rotation:rot.Z, ccw:true},
+                "E": {cubies:[C], axis:Y_AXIS, rotation:rot.Y, ccw:true},
+                "S": {cubies:[C], axis:X_AXIS, rotation:rot.X, ccw:false},
+
+                "l": {cubies:[L,C], axis:Z_AXIS, rotation:rot.Z, ccw:true},
+                "r": {cubies:[R,C], axis:Z_AXIS, rotation:rot.Z, ccw:false},
+
+                "u": {cubies:[U,C], axis:Y_AXIS, rotation:rot.Y, ccw:false},
+                "d": {cubies:[D,C], axis:Y_AXIS, rotation:rot.Y, ccw:true},
+
+                "f": {cubies:[F,C], axis:X_AXIS, rotation:rot.X, ccw:false},
+                "b": {cubies:[B,C], axis:X_AXIS, rotation:rot.X, ccw:true}
+               
             };
 
-            this.selectedCube = layers[move.face].cubie;
+            this.selectedCubes = layers[move.face].cubies;
             this.axisConstant = layers[move.face].axis;
             this.rotationAxis = layers[move.face].rotation;
             // not a true counter clockwise
@@ -1055,8 +1073,9 @@
 
     function startRotate(event) {
         if (event.button == LEFT_MOUSE) { // left mouse
+            rubiksCube.selectedCubes = [];
             rubiksCube.selectCube(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
-            if (rubiksCube.selectedCube) {
+            if (rubiksCube.selectedCubes.length > 0) {            
                 init_coordinates = screenToObjectCoordinates(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
                 setTimeout(function() {
                     leftMouseDown = true;
@@ -1197,9 +1216,9 @@
                 moveList.push({face:randomMove, inverse:inverse, count:moveCount});            
             }
             rubiksCube.perform(moveList);
-        }
         var ret = rubiksCube.moveListToString(moveList);
         document.getElementById('moveList').innerHTML = ret;
+        }
         return ret;
     }
 
@@ -1209,31 +1228,11 @@
             alg = alg.replace(/'/g,'3');
         alg = alg.replace(/-/g,'3');
         alg = alg.replace(/([^LRUDFBMESxyz0123456789])/gi,"");
-            // inverse double layer moves
-            alg = alg.replace(/x3/g,"r3L");
-            alg = alg.replace(/y3/g,"u3D");
-            alg = alg.replace(/z3/g,"f3B");
-            alg = alg.replace(/u3/g,"U3E1");
-            alg = alg.replace(/d3/g,"D3E3");
-            alg = alg.replace(/f3/g,"F3S3");
-            alg = alg.replace(/b3/g,"B3S1");
-            alg = alg.replace(/l3/g,"L3M3");
-            alg = alg.replace(/r3/g,"R3M1");
-            // double layer moves
-            alg = alg.replace(/x/g,'rL3');
-            alg = alg.replace(/y/g,'uD3');
-            alg = alg.replace(/z/g,'fB3');
-            alg = alg.replace(/u/g,'U1E3');
-            alg = alg.replace(/d/g,'D1E1');
-            alg = alg.replace(/f/g,'F1S1');
-            alg = alg.replace(/b/g,'B1S3');
-            alg = alg.replace(/l/g,'L1M1');
-            alg = alg.replace(/r/g,'R1M3');
             // add count where necessary
-            alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/g,"$11$2");
-            alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/g,"$11$2");
-            alg = alg.replace(/([0-9])([LRUDFBMESxyz])/g,"$1,$2");
-            alg = alg.replace(/([LRUDFBMESxyz])$/,"$11");
+        alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/ig,"$11$2");
+        alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/ig,"$11$2");
+        alg = alg.replace(/([0-9])([LRUDFBMESxyz])/ig,"$1,$2");
+        alg = alg.replace(/([LRUDFBMESxyz])$/i,"$11");
 
             var moveList = alg.split(",")
                 .map(function(el){
