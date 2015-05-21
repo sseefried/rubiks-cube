@@ -556,7 +556,8 @@
                 o:'orange',
                 b:'blue',
                 y:'yellow',
-                x:'gray'
+                x:'gray',
+                k:'black' //key (from CMYK)
             };
             var r,g,b;
             var cube;
