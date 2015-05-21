@@ -25,10 +25,10 @@
     var isRotating = false;
     var isAnimating = false;
     var isInitializing = true;
-    var eye = [20, 15, -10];
+    var eye = [0, 0, -17];
     var center = [0, 0, 0];
     var up = [0, 1, 0];
-    var fov = -13;
+    var fov = -19.5;
 
     var modelViewMatrix = mat4.create();
     var projectionMatrix = mat4.create();
@@ -1128,9 +1128,9 @@
 
     function perspectiveView() {
         mat4.identity(rotationMatrix);
-        mat4.rotateX(rotationMatrix, rotationMatrix, degreesToRadians(-50));
-        mat4.rotateY(rotationMatrix, rotationMatrix, degreesToRadians(210));
-        mat4.rotateZ(rotationMatrix, rotationMatrix, degreesToRadians(-100));
+        mat4.rotateX(rotationMatrix, rotationMatrix, degreesToRadians(30));
+        mat4.rotateY(rotationMatrix, rotationMatrix, degreesToRadians(-50));
+        mat4.rotateZ(rotationMatrix, rotationMatrix, degreesToRadians(0));
     }
 
     function togglePerspective(event) {
