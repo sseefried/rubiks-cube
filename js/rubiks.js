@@ -589,7 +589,16 @@
                         position = faces;
                         faces.forEach(function(value, key) {                            
                             var index = positions.indexOf(position.join(''));
-                            var ch = stickers.slice(index, index+1);
+                            var ch;
+                            if (stickers.length >= index+1) {
+                                ch = stickers.slice(index, index+1);
+                                    ch = 'x';
+                                }
+                            }
+                            else {
+                                ch = 'x';
+                            }
+                                
                             var el = cube.stickers[key];
                             var cr = parseInt(el.color[0]*255.0);
                             var cg = parseInt(el.color[1]*255.0);
