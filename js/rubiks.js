@@ -484,8 +484,11 @@
                 "d": {cubies:[D,C], axis:Y_AXIS, rotation:rot.Y, ccw:true},
 
                 "f": {cubies:[F,C], axis:X_AXIS, rotation:rot.X, ccw:false},
-                "b": {cubies:[B,C], axis:X_AXIS, rotation:rot.X, ccw:true}
+                "b": {cubies:[B,C], axis:X_AXIS, rotation:rot.X, ccw:true},
                
+                "x": {cubies:[L,C,R], axis:Z_AXIS, rotation:rot.Z, ccw:false},
+                "y": {cubies:[U,C,D], axis:Y_AXIS, rotation:rot.Y, ccw:false},
+                "z": {cubies:[F,C,B], axis:X_AXIS, rotation:rot.X, ccw:false}
             };
 
             this.selectedCubes = layers[move.face].cubies;
