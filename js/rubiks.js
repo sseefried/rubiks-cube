@@ -592,6 +592,7 @@
                             var ch;
                             if (stickers.length >= index+1) {
                                 ch = stickers.slice(index, index+1);
+                                if (!"rgbwoyxk".match(ch)) {
                                     ch = 'x';
                                 }
                             }
