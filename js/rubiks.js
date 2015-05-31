@@ -9,6 +9,7 @@
      *      Michiel van der Blonk - blonkm@gmail.com
      * @license LGPL
      */
+    var GLube = function() { 
     var canvas;
     var gl;
     var rubiksCube;
@@ -24,16 +25,17 @@
     var new_coordinates;
     var isRotating = false;
     var isAnimating = false;
-    var eye = [20, 15, -10];
+    var isInitializing = true;
+    var eye = [0, 0, -17];
     var center = [0, 0, 0];
     var up = [0, 1, 0];
-    var fov = -13;
+    var fov = -19.5;
 
     var modelViewMatrix = mat4.create();
     var projectionMatrix = mat4.create();
     var rotationMatrix = mat4.create();
 
-    var DEGREES = 15;
+    var DEGREES = 6;
     var MARGIN_OF_ERROR = 1e-3;
     var X_AXIS = 0;
     var Y_AXIS = 1;
@@ -44,7 +46,7 @@
     var CANVAS_Y_OFFSET = 0;
 
     function RubiksCube() {
-        this.selectedCube = null; // an instance of Cube
+        this.selectedCubes = [];// an instance of Cube
         this.rotatedCubes = null; // an array of Cubes
         this.rotationAxis = null; // a vec3
         this.axisConstant = null; // X_AXIS, Y_AXIS, or Z_AXIS
@@ -61,6 +63,8 @@
         this.pickingRenderBuffer = null;
         this.normalsCube = new NormalsCube();
         this.cubes = new Array(3);
+        this.noMove = {face:'', count:0, inverse:false};
+        this.currentMove = {face:'', count:0, inverse:false};
 
         this.init = function() {
             this.initTextureFramebuffer();
@@ -77,6 +81,7 @@
                     }
                 }
             }
+            this.initCenters();
         }
 
         this.initTextureFramebuffer = function() {
@@ -128,6 +133,19 @@
             this.stickerFacesBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.stickerFacesBuffer);
             gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(stickerModel.faces), gl.STATIC_DRAW);
+        }
+
+
+        this.initCenters = function() {
+            this.centerCubes = {
+                left:   this.cubes[1][1][2],
+                right:  this.cubes[1][1][0],
+                up:     this.cubes[1][0][1],
+                down:   this.cubes[1][2][1],
+                front:  this.cubes[0][1][1],
+                back:   this.cubes[2][1][1],
+                core:   this.cubes[1][1][1]
+            }
         }
 
         this.init();
@@ -195,15 +213,16 @@
         }
 
         /*
-         * Sets this.rotatedCubes to an array of cubes that share the same AXIS coordinate as this.selectedCube.
+         * Sets this.rotatedCubes to an array of cubes that share the same AXIS coordinate as this.selectedCubes.
          * AXIS is 0, 1, or 2 for the x-, y-, or z-coordinate.
          */
-        this.setRotatedCubes = function() {
+        this.setRotatedCubes = function(move) {
             if (!this.rotationAxis) {
                 return;
             }
-            var value = this.selectedCube.coordinates[this.axisConstant];
             var cubes = [];
+            this.selectedCubes.forEach(function(el) {
+                var value = el.coordinates[this.axisConstant];
             for (var r = 0; r < 3; r++) {
                 for (var g = 0; g < 3; g++) {
                     for (var b = 0; b < 3; b++) {
@@ -214,7 +233,8 @@
                     }
                 }
             }
-            if (cubes.length == 9) {
+            }, this);
+            if (cubes.length >= 9) {
                 this.rotatedCubes = cubes;
                 // is this a slice layer?
                 var i;
@@ -232,29 +252,34 @@
                         inverse |= slice=='E' && sum==1;
                         inverse |= slice=='S' && sum==-1; // silly cube notation
                         // update centers for slice moves
+                        var m = (move===undefined) ? 1 : move.count;
+                        while (m-- >0) {
                         that.updateCenters(slice, inverse);
+                    }
+                        
                     }
                     });
             }
-        
         }
 
         /*
          * Rotates this.rotatedCubes around this.rotationAxis by this.degrees.
          */
-        this.rotateLayer = function() {
-            if (Math.abs(this.rotationAngle) == 90) {
+        this.rotateLayer = function(isDouble) {
+            var fullTurn = isDouble ? 180 : 90;
+            if (Math.abs(this.rotationAngle) == fullTurn) {
                 this.rotationAngle = 0;
                 isRotating = false;
                 isAnimating = false;
-                this.degrees = DEGREES;
+                this.degrees = isInitializing ? fullTurn: DEGREES;
                 return;
             }
 
-            this.degrees = 3 + DEGREES * $.easing.easeOutCubic(0, this.rotationAngle, 0, 1, 90);
-            if (this.rotationAngle+this.degrees > 90) {
-                this.degrees = 90 - this.rotationAngle;
-                this.rotationAngle = 90;
+            if (!isInitializing)
+                this.degrees = 3 + DEGREES * $.easing.easeOutExpo(0, this.rotationAngle, 0, 1, fullTurn);
+            if (this.rotationAngle + this.degrees > fullTurn) {
+                this.degrees = fullTurn - this.rotationAngle;
+                this.rotationAngle = fullTurn;
             }
             else {
                 this.rotationAngle += this.degrees;
@@ -286,7 +311,7 @@
             var pixelValues = new Uint8Array(4);
             gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelValues);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            this.selectedCube = this.colorToCube(pixelValues);
+            this.selectedCubes.push(this.colorToCube(pixelValues));
         }
 
         this.setRotationAxis = function(x, y, direction) {
@@ -323,7 +348,7 @@
                 [0, 1, 0],
                 [0, 0, 1]
             ];
-            this.selectedCube = this.cubes[r][g][b];
+            this.selectedCubes.push(this.cubes[r][g][b]);
             this.axisConstant = axis;
             this.rotationAxis = rot[axis];
             if (inverse)
@@ -346,17 +371,6 @@
             else
                 if (params.length > 0)
                     setTimeout(function() {that.doTransform(params)}, delay);
-        }
-
-
-        this.centerCubes = {
-            left:   this.cubes[1][1][2],
-            right:  this.cubes[1][1][0],
-            up:     this.cubes[1][0][1],
-            down:   this.cubes[1][2][1],
-            front:  this.cubes[0][1][1],
-            back:   this.cubes[2][1][1],
-            core:   this.cubes[1][1][1]
         }
 
         this.centerColors = {
@@ -441,24 +455,44 @@
                 Z: [0, 0, 1]
             };
             var inverse = typeof move.inverse !== 'undefined' ? move.inverse : false;
+            var L = this.centerCubes.left;
+            var R = this.centerCubes.right;
+            var U = this.centerCubes.up;
+            var D = this.centerCubes.down;
+            var F = this.centerCubes.front;
+            var B = this.centerCubes.back;
+            var C = this.centerCubes.core;
 
             var layers = {
-                "L": {cubie:this.centerCubes.left, axis:Z_AXIS, rotation:rot.Z, ccw:true},
-                "R": {cubie:this.centerCubes.right, axis:Z_AXIS, rotation:rot.Z, ccw:false},
+                "L": {cubies:[L], axis:Z_AXIS, rotation:rot.Z, ccw:true},
+                "R": {cubies:[R], axis:Z_AXIS, rotation:rot.Z, ccw:false},
 
-                "U": {cubie:this.centerCubes.up, axis:Y_AXIS, rotation:rot.Y, ccw:false},
-                "D": {cubie:this.centerCubes.down, axis:Y_AXIS, rotation:rot.Y, ccw:true},
+                "U": {cubies:[U], axis:Y_AXIS, rotation:rot.Y, ccw:false},
+                "D": {cubies:[D], axis:Y_AXIS, rotation:rot.Y, ccw:true},
 
-                "F": {cubie:this.centerCubes.front, axis:X_AXIS, rotation:rot.X, ccw:false},
-                "B": {cubie:this.centerCubes.back, axis:X_AXIS, rotation:rot.X, ccw:true},
+                "F": {cubies:[F], axis:X_AXIS, rotation:rot.X, ccw:false},
+                "B": {cubies:[B], axis:X_AXIS, rotation:rot.X, ccw:true},
 
                 // use center of cube for slices
-                "M": {cubie:this.centerCubes.core, axis:Z_AXIS, rotation:rot.Z, ccw:true},
-                "E": {cubie:this.centerCubes.core, axis:Y_AXIS, rotation:rot.Y, ccw:true},
-                "S": {cubie:this.centerCubes.core, axis:X_AXIS, rotation:rot.X, ccw:false}
+                "M": {cubies:[C], axis:Z_AXIS, rotation:rot.Z, ccw:true},
+                "E": {cubies:[C], axis:Y_AXIS, rotation:rot.Y, ccw:true},
+                "S": {cubies:[C], axis:X_AXIS, rotation:rot.X, ccw:false},
+
+                "l": {cubies:[L,C], axis:Z_AXIS, rotation:rot.Z, ccw:true},
+                "r": {cubies:[R,C], axis:Z_AXIS, rotation:rot.Z, ccw:false},
+
+                "u": {cubies:[U,C], axis:Y_AXIS, rotation:rot.Y, ccw:false},
+                "d": {cubies:[D,C], axis:Y_AXIS, rotation:rot.Y, ccw:true},
+
+                "f": {cubies:[F,C], axis:X_AXIS, rotation:rot.X, ccw:false},
+                "b": {cubies:[B,C], axis:X_AXIS, rotation:rot.X, ccw:true},
+               
+                "x": {cubies:[L,C,R], axis:Z_AXIS, rotation:rot.Z, ccw:false},
+                "y": {cubies:[U,C,D], axis:Y_AXIS, rotation:rot.Y, ccw:false},
+                "z": {cubies:[F,C,B], axis:X_AXIS, rotation:rot.X, ccw:false}
             };
 
-            this.selectedCube = layers[move.face].cubie;
+            this.selectedCubes = layers[move.face].cubies;
             this.axisConstant = layers[move.face].axis;
             this.rotationAxis = layers[move.face].rotation;
             // not a true counter clockwise
@@ -468,26 +502,40 @@
             if (inverse) {
                 vec3.scale(this.rotationAxis, this.rotationAxis, -1);
             }
-            this.setRotatedCubes();
+            this.setRotatedCubes(move);
             isRotating = true;
         }
 
         this.perform = function(alg) {
             var that = this;
             var delay = 10;
-            if (!isRotating) {
+            if (!isRotating && alg.length > 0) {
                 var clone = alg.slice(0);
                 var move = clone.shift();
                 if (!move.count)
                     move.count = 1;
-                for (var i=0;i<move.count;i++)
                     this.move(move);                
+                this.currentMove = move;
                 that.setNormals = 'MESxyz'.match(move.face)!=null;
                 setTimeout(function() {that.perform(clone)}, delay);
             }
-            else
+            else {
                 if (alg.length > 0)
                     setTimeout(function() {that.perform(alg)}, delay);        
+                else
+                    this.algDone();
+            }
+        }
+
+        this.algDone = function() {
+            if (isRotating) {
+                setTimeout(rubiksCube.algDone, 100);
+            }
+            else {
+                isInitializing = false;
+                rubiksCube.currentMove = rubiksCube.noMove;
+                this.degrees = DEGREES;
+            }
         }
 
         this.moveListToString = function(moveList) {
@@ -495,6 +543,121 @@
               return move.face + (move.count==2?"2":"") + (move.inverse?"'":"");
             }).join(" ");
         }
+
+        this.inverseMoveList = function(moves) {
+            return moves.reverse().map(function(move) {
+              return {face:move.face, count:move.count, inverse:!move.inverse};
+            });
+        }
+        
+        this.setStickers = function(stickers) {
+            var positions = "FUL,FU,FUR,FL,F,FR,FDL,FD,FDR,RFU,RU,RBU,RF,R,RB,RFD,RD,RBD,DLF,DF,DRF,DL,D,DR,DLB,DB,DRB,BUR,BU,BUL,BR,B,BL,BDR,BD,BDL,LBU,LU,LFU,LB,L,LF,LBD,LD,LFD,ULB,UB,URB,UL,U,UR,ULF,UF,URF".split(',');
+
+            var colors = {
+                r:'red',
+                g:'green',
+                w:'white',
+                o:'orange',
+                b:'blue',
+                y:'yellow',
+                x:'gray',
+                k:'black' //key (from CMYK)
+            };
+            var r,g,b;
+            var cube;
+            var x,y,z;
+            var position;
+            
+            var arrayRotate = function(arr, reverse){
+              if(reverse)
+                arr.push(arr.shift());
+              else
+                arr.unshift(arr.pop());
+              return arr;
+            } 
+
+            for (var r = 0; r < 3; r++) {
+                for (var g = 0; g < 3; g++) {
+                    for (var b = 0; b < 3; b++) {
+                        cube = this.cubes[r][g][b];
+                        x = cube.coordinates[0];
+                        y = cube.coordinates[1];
+                        z = cube.coordinates[2];
+                        var faces=[];
+                        if (x === -1) faces.push('F'); else if (x === 1) faces.push('B');
+                        if (y === -1) faces.push('U'); else if (y === 1) faces.push('D');
+                        if (z === -1) faces.push('R'); else if (z === 1) faces.push('L');
+                        // faces.length=1 => center
+                        // faces.length=2 => edge
+                        // faces.length=3 => corner
+                        position = faces;
+                        faces.forEach(function(value, key) {                            
+                            var index = positions.indexOf(position.join(''));
+                            var ch;
+                            if (stickers.length >= index+1) {
+                                ch = stickers.slice(index, index+1);
+                                if (!"rgbwoyxk".match(ch)) {
+                                    ch = 'x';
+                                }
+                            }
+                            else {
+                                ch = 'x';
+                            }
+                                
+                            var el = cube.stickers[key];
+                            var cr = parseInt(el.color[0]*255.0);
+                            var cg = parseInt(el.color[1]*255.0);
+                            var cb = parseInt(el.color[2]*255.0);
+                            cube.stickers[key].color = cube.COLORS[colors[ch]];
+                            position = arrayRotate(position, true);
+                        });
+                         
+                        }
+                    }
+                }
+            };
+        
+        
+        this.reset = function() {
+            this.init();            
+                var alg = $(canvas).data('alg');
+                var algType = $(canvas).data('type');
+            // default order of RubikPlayer faces is F, R, D, B, L, U
+            // we start with yellow on top
+            var defaultStickers = "rrrrrrrrrgggggggggwwwwwwwwwooooooooobbbbbbbbbyyyyyyyyy";
+                var stickers = $(canvas).data('stickers') || defaultStickers; 
+            var stickerSets = {
+                CROSS:    "xxxxrxxrxxxxxgxxgxxwxwwwxwxxxxxoxxoxxxxxbxxbxxxxxyxxxx",
+                FL:       "xxxxxxrrrxxxxxxgggwwwwwwwwwxxxxxxoooxxxxxxbbbxxxxxxxxx",
+                F2L:      "xxxrrrrrrxxxggggggwwwwwwwwwxxxooooooxxxbbbbbbxxxxyxxxx",
+                SHORTCUT: "xxxxrrxrrxxxggxggxxwwwwwxwxxxxxoxxoxxxxxbxxbxxxxxyxxxx",
+                OLL:      "xxxrrrrrrxxxggggggwwwwwwwwwxxxooooooxxxbbbbbbyyyyyyyyy",
+                    PLL:      "rrrxxxxxxgggxxxxxxxxxxxxxxxoooxxxxxxbbbxxxxxxyyyyyyyyy",
+                    FULL:     defaultStickers
+            };
+            // replace stickers by full definition of set
+            if (stickerSets[stickers.toUpperCase()]) {
+                stickers = stickerSets[stickers.toUpperCase()];
+            }
+            this.setStickers(stickers);
+            perspectiveView();
+            if (alg) {
+                this.degrees = 90;
+                    $(canvas).parent().find('.algorithm').val(alg);
+                var moves = parseAlgorithm(alg);
+                if (algType === 'solver') {
+                isInitializing = true;
+                    moves = this.inverseMoveList(moves);
+                    doAlgorithm(moves);
+                }
+                    else {
+                    isInitializing = false;
+            }
+                }
+            else
+                isInitializing = false;
+        };
+
     }
 
     function Cube(rubiksCube, coordinates, color) {
@@ -510,7 +673,9 @@
             'orange': [1.0, 0.5, 0.0, 1.0],
             'red': [0.8, 0.1, 0.1, 1.0],
             'white': [1.0, 1.0, 1.0, 1.0],
-            'yellow': [1.0, 1.0, 0.1, 1.0]
+            'yellow': [1.0, 1.0, 0.1, 1.0],
+            'gray': [0.5, 0.5, 0.5, 1.0],
+            'black': [0.0, 0.0, 0.0, 1.0]
         }
 
         this.init = function() {
@@ -646,7 +811,6 @@
             'black': [0, -1, 0],
             'yellow': [0, 1, 0]
         }
-
         this.init = function() {
             this.initTextureFramebuffer();
             this.initBuffers();
@@ -749,7 +913,7 @@
             console.log("Your browser doesn't support WebGL.")
                 return null;
         }
-        gl = canvas.getContext('webgl', {preserveDrawingBuffer: true}) || canvas.getContext('experimental-webgl', {preserveDrawingBuffer: true});
+        gl = canvas.getContext('webgl', {preserveDrawingBuffer: true, antialias:true}) || canvas.getContext('experimental-webgl', {preserveDrawingBuffer: true, antialias:true});
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
         if (!gl) {
@@ -815,12 +979,14 @@
 
     function drawScene() {
         if (isRotating) {
-            rubiksCube.rotateLayer();
+            rubiksCube.rotateLayer(rubiksCube.currentMove.count > 1);
         }
 
         rubiksCube.drawToNormalsFramebuffer();
         rubiksCube.drawToPickingFramebuffer(); 
+        if (!isInitializing) {
         rubiksCube.draw();
+    }
     }
 
     function tick() {
@@ -828,10 +994,10 @@
         drawScene();
     }
 
-    function start() {
-        canvas = document.getElementById('glcanvas');
-        CANVAS_X_OFFSET = $('#glcanvas').offset()['left'];
-        CANVAS_Y_OFFSET = $('#glcanvas').offset()['top'];
+        function start(el) {
+            canvas = el;
+            CANVAS_X_OFFSET = $(canvas).offset()['left'];
+            CANVAS_Y_OFFSET = $(canvas).offset()['top'];
         gl = initWebGL(canvas);
         initShaders();
         rubiksCube = new RubiksCube();
@@ -899,11 +1065,12 @@
 
     function rotate(event) {
         if (rightMouseDown) {
-            x_new_right = event.pageX;
-            y_new_right = event.pageY;
-            var delta_x = (x_new_right - x_init_right) / 50;
-            var delta_y = (y_new_right - y_init_right) / 50;
-            var axis = [delta_y, -delta_x, 0];
+            x_init_right = event.clientX;
+            y_init_right = event.clientY;
+            var delta_x = parseInt((x_new_right - x_init_right) * 360 / this.width);
+            var delta_y = parseInt((y_new_right - y_init_right) * 360 / this.width);
+   
+            var axis = [-delta_y, delta_x, 0];
             var degrees = Math.sqrt(delta_x * delta_x + delta_y * delta_y);
             var newRotationMatrix = mat4.create();
             mat4.rotate(newRotationMatrix, newRotationMatrix, degreesToRadians(degrees), axis);
@@ -917,12 +1084,15 @@
             rubiksCube.setRotatedCubes();
             isRotating = rubiksCube.rotatedCubes && rubiksCube.rotationAxis;
         }
+        x_new_right = event.clientX;
+        y_new_right = event.clientY;    
     }
 
     function startRotate(event) {
         if (event.button == LEFT_MOUSE) { // left mouse
+            rubiksCube.selectedCubes = [];
             rubiksCube.selectCube(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
-            if (rubiksCube.selectedCube) {
+            if (rubiksCube.selectedCubes.length > 0) {            
                 init_coordinates = screenToObjectCoordinates(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
                 setTimeout(function() {
                     leftMouseDown = true;
@@ -938,6 +1108,7 @@
     function endRotate(event) {
         if (event.button == LEFT_MOUSE && leftMouseDown) { // left mouse
             leftMouseDown = false;
+            rubiksCube.algDone();
         } else if (event.button == RIGHT_MOUSE) { // right mouse
             rightMouseDown = false;
         }
@@ -974,9 +1145,9 @@
 
     function perspectiveView() {
         mat4.identity(rotationMatrix);
-        mat4.rotateX(rotationMatrix, rotationMatrix, degreesToRadians(-50));
-        mat4.rotateY(rotationMatrix, rotationMatrix, degreesToRadians(210));
-        mat4.rotateZ(rotationMatrix, rotationMatrix, degreesToRadians(-100));
+        mat4.rotateX(rotationMatrix, rotationMatrix, degreesToRadians(30));
+        mat4.rotateY(rotationMatrix, rotationMatrix, degreesToRadians(-50));
+        mat4.rotateZ(rotationMatrix, rotationMatrix, degreesToRadians(0));
     }
 
     function togglePerspective(event) {
@@ -1032,13 +1203,14 @@
         }
     }
 
-    function scramble(count) {
+        function scramble() {
         var count;
+        isInitializing = false;
         if (!isAnimating) {
             isAnimating = true;
 
-            if ($('#scramble-length'))
-                count = $('#scramble-length').val();
+                if ($(canvas).parent().find('.scramble-length'))
+                    count = parseInt($(canvas).parent().find('.scramble-length').val());
             else
                 count = Math.floor(Math.random() * 10) + 10;
             var moves = ['R','L','U','D','F','B'];
@@ -1047,7 +1219,8 @@
             var moveIndex = 0;
             var prevIndex = 0;
             var randomMove;
-            var inverse;
+            var inverse = false;
+            var moveCount = 1;
             for (var i = 0; i < count; i++) {
                 moveIndex = Math.floor(Math.random() * moves.length);
                 while (moveIndex/2 == prevIndex/2) {
@@ -1055,48 +1228,28 @@
                 }
                 randomMove = moves[moveIndex];
                 prevIndex = moveIndex;
-                inverse = Math.random() < 0.5;
-                moveList.push({face:randomMove, inverse:inverse});            
+                moveCount = 1 + Math.floor(Math.random()*2);
+                inverse = moveCount==1 && Math.random() < 0.5;
+                moveList.push({face:randomMove, inverse:inverse, count:moveCount});            
             }
             rubiksCube.perform(moveList);
-        }
         var ret = rubiksCube.moveListToString(moveList);
-        document.getElementById('moveList').innerHTML = ret;
+                $(canvas).parent().find('.moveList').text(ret);
+        }
         return ret;
     }
 
-    function doAlgorithm(alg) {
-        if (!isAnimating) {
-            isAnimating = true;
-
-            var alg = alg.replace(/ /g, '');
+    function parseAlgorithm(algorithm) {
+        var alg = algorithm;
+        alg = alg.replace(/ /g, '');
             alg = alg.replace(/'/g,'3');
-            alg = alg.replace(/(.)2/g,'$1$1');
-            // inverse double layer moves
-            alg = alg.replace(/x3/g,"r3L");
-            alg = alg.replace(/y3/g,"u3D");
-            alg = alg.replace(/z3/g,"f3B");
-            alg = alg.replace(/u3/g,"U3E1");
-            alg = alg.replace(/d3/g,"D3E3");
-            alg = alg.replace(/f3/g,"F3S3");
-            alg = alg.replace(/b3/g,"B3S1");
-            alg = alg.replace(/l3/g,"L3M3");
-            alg = alg.replace(/r3/g,"R3M1");
-            // double layer moves
-            alg = alg.replace(/x/g,'rL3');
-            alg = alg.replace(/y/g,'uD3');
-            alg = alg.replace(/z/g,'fB3');
-            alg = alg.replace(/u/g,'U1E3');
-            alg = alg.replace(/d/g,'D1E1');
-            alg = alg.replace(/f/g,'F1S1');
-            alg = alg.replace(/b/g,'B1S3');
-            alg = alg.replace(/l/g,'L1M1');
-            alg = alg.replace(/r/g,'R1M3');
+        alg = alg.replace(/-/g,'3');
+        alg = alg.replace(/([^LRUDFBMESxyz0123456789])/gi,"");
             // add count where necessary
-            alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/g,"$11$2");
-            alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/g,"$11$2");
-            alg = alg.replace(/([0-9])([LRUDFBMESxyz])/g,"$1,$2");
-            alg = alg.replace(/([LRUDFBMESxyz])$/,"$11");
+        alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/ig,"$11$2");
+        alg = alg.replace(/([LRUDFBMESxyz])([^0-9])/ig,"$11$2");
+        alg = alg.replace(/([0-9])([LRUDFBMESxyz])/ig,"$1,$2");
+        alg = alg.replace(/([LRUDFBMESxyz])$/i,"$11");
 
             var moveList = alg.split(",")
                 .map(function(el){
@@ -1106,7 +1259,15 @@
                       inverse: n==3,
                       count:(""+n).replace(3,1)}
                 });
-            rubiksCube.perform(moveList);
+
+        return moveList;
+    }
+    
+    function doAlgorithm(moves) {
+        if (!isAnimating) {
+            isAnimating = true;
+
+            rubiksCube.perform(moves);
         }
     }
     
@@ -1126,30 +1287,51 @@
                 doubleMove = true;
             var layer = control.charAt(0);
             var moveList = [];
-            moveList.push({face:layer, inverse:prime});            
-            if (doubleMove) {
-                moveList.push({face:layer, inverse:prime});            
-            }
+            moveList.push({face:layer, inverse:prime, count:doubleMove?2:1});            
             rubiksCube.perform(moveList);
         });
     }
 
+        // public interface
+        this.start = start;
+        this.reset = function() { rubiksCube.reset(); };
+        this.rubiksCube = function() { return rubiksCube; };
+        this.initControls = function() { initControls(); };
+        this.parseAlgorithm = parseAlgorithm;
+        this.doAlgorithm = doAlgorithm;
+        this.scramble = scramble;
+        this.rotate = rotate;
+        this.startRotate = startRotate;
+        this.endRotate = endRotate;
+        this.togglePerspective = togglePerspective;
+    };
+    
+    // global scope
     $(document).ready(function() {
-        start();
-        $('#glcanvas').bind('contextmenu', function(e) { return false; });
-        $('#glcanvas').mousedown(startRotate);
-        $('#glcanvas').mousemove(rotate);
-        $('#glcanvas').mouseup(endRotate);
-        $('body').keypress(togglePerspective);
-        $(window).resize(function() {
-            CANVAS_X_OFFSET = $('#glcanvas').offset()['left'];
-            CANVAS_Y_OFFSET = $('#glcanvas').offset()['top'];
-            canvas.width = canvas.clientWidth;
-            canvas.height = canvas.clientHeight;
+        $('.glube').each(function(){
+            var glube = new GLube;
+
+            // animation
+            $(this).find('canvas').each(function() {
+                var canvas = this;
+                glube.start(this);
+                $(this).bind('contextmenu', function(e) { return false; });
+                $(this).mousedown(glube.startRotate);
+                $(this).mousemove(glube.rotate);
+                $(this).mouseup(glube.endRotate);
+                glube.reset();
+                glube.initControls();
         });
-        initControls();
-        $('#reset-cube').click(function() {rubiksCube.init()});
-        $('#scramble-cube').click(scramble);
-        $('#run-alg').click(function() { doAlgorithm($('#algorithm').val())} );
+            // controls         
+            $(this).find('.reset-cube').click(function() {glube.reset();});
+            $(this).find('.scramble-cube').click(function() {glube.scramble()});
+            $(this).find('.run-alg').click(function() {
+                glube.isInitializing = false; 
+                var alg = $(this).prev().find('.algorithm').val();
+                var moves = glube.parseAlgorithm(alg);
+                glube.doAlgorithm(moves);
     });
+        });  
+    });
+    
 })();
