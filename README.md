@@ -1,5 +1,5 @@
 # rubiks-cube
-GCube, a WebGL Rubik's Cube
+GLube, a WebGL Rubik's Cube
 
 ## History
 Java used to be the go-to solution for Rubik's cube applets (no pun intended with the Go-To). The last couple of years people 
