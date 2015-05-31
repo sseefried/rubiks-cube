@@ -9,6 +9,7 @@
      *      Michiel van der Blonk - blonkm@gmail.com
      * @license LGPL
      */
+    var GLube = function() { 
     var canvas;
     var gl;
     var rubiksCube;
@@ -619,19 +620,20 @@
         
         this.reset = function() {
             this.init();            
-            var alg = $('#glcanvas').data('alg');
-            var algType = $('#glcanvas').data('type');
+                var alg = $(canvas).data('alg');
+                var algType = $(canvas).data('type');
             // default order of RubikPlayer faces is F, R, D, B, L, U
             // we start with yellow on top
             var defaultStickers = "rrrrrrrrrgggggggggwwwwwwwwwooooooooobbbbbbbbbyyyyyyyyy";
-            var stickers = $('#glcanvas').data('stickers') || defaultStickers; 
+                var stickers = $(canvas).data('stickers') || defaultStickers; 
             var stickerSets = {
                 CROSS:    "xxxxrxxrxxxxxgxxgxxwxwwwxwxxxxxoxxoxxxxxbxxbxxxxxyxxxx",
                 FL:       "xxxxxxrrrxxxxxxgggwwwwwwwwwxxxxxxoooxxxxxxbbbxxxxxxxxx",
                 F2L:      "xxxrrrrrrxxxggggggwwwwwwwwwxxxooooooxxxbbbbbbxxxxyxxxx",
                 SHORTCUT: "xxxxrrxrrxxxggxggxxwwwwwxwxxxxxoxxoxxxxxbxxbxxxxxyxxxx",
                 OLL:      "xxxrrrrrrxxxggggggwwwwwwwwwxxxooooooxxxbbbbbbyyyyyyyyy",
-                PLL:      "rrrxxxxxxgggxxxxxxxxxxxxxxxoooxxxxxxbbbxxxxxxyyyyyyyyy"
+                    PLL:      "rrrxxxxxxgggxxxxxxxxxxxxxxxoooxxxxxxbbbxxxxxxyyyyyyyyy",
+                    FULL:     defaultStickers
             };
             // replace stickers by full definition of set
             if (stickerSets[stickers.toUpperCase()]) {
@@ -641,16 +643,17 @@
             perspectiveView();
             if (alg) {
                 this.degrees = 90;
-                $('#algorithm').val(alg);
+                    $(canvas).parent().find('.algorithm').val(alg);
                 var moves = parseAlgorithm(alg);
                 if (algType === 'solver') {
                 isInitializing = true;
                     moves = this.inverseMoveList(moves);
                     doAlgorithm(moves);
                 }
-                else
+                    else {
                     isInitializing = false;
             }
+                }
             else
                 isInitializing = false;
         };
@@ -991,10 +994,10 @@
         drawScene();
     }
 
-    function start() {
-        canvas = document.getElementById('glcanvas');
-        CANVAS_X_OFFSET = $('#glcanvas').offset()['left'];
-        CANVAS_Y_OFFSET = $('#glcanvas').offset()['top'];
+        function start(el) {
+            canvas = el;
+            CANVAS_X_OFFSET = $(canvas).offset()['left'];
+            CANVAS_Y_OFFSET = $(canvas).offset()['top'];
         gl = initWebGL(canvas);
         initShaders();
         rubiksCube = new RubiksCube();
@@ -1200,14 +1203,14 @@
         }
     }
 
-    function scramble(count) {
+        function scramble() {
         var count;
         isInitializing = false;
         if (!isAnimating) {
             isAnimating = true;
 
-            if ($('#scramble-length'))
-                count = $('#scramble-length').val();
+                if ($(canvas).parent().find('.scramble-length'))
+                    count = parseInt($(canvas).parent().find('.scramble-length').val());
             else
                 count = Math.floor(Math.random() * 10) + 10;
             var moves = ['R','L','U','D','F','B'];
@@ -1231,7 +1234,7 @@
             }
             rubiksCube.perform(moveList);
         var ret = rubiksCube.moveListToString(moveList);
-        document.getElementById('moveList').innerHTML = ret;
+                $(canvas).parent().find('.moveList').text(ret);
         }
         return ret;
     }
@@ -1289,27 +1292,45 @@
         });
     }
 
+        // public interface
+        this.start = start;
+        this.reset = function() { rubiksCube.reset(); };
+        this.rubiksCube = function() { return rubiksCube; };
+        this.initControls = function() { initControls(); };
+        this.parseAlgorithm = parseAlgorithm;
+        this.doAlgorithm = doAlgorithm;
+        this.scramble = scramble;
+        this.rotate = rotate;
+        this.startRotate = startRotate;
+        this.endRotate = endRotate;
+        this.togglePerspective = togglePerspective;
+    };
+    
+    // global scope
     $(document).ready(function() {
-        start();
-        $('#glcanvas').bind('contextmenu', function(e) { return false; });
-        $('#glcanvas').mousedown(startRotate);
-        $('#glcanvas').mousemove(rotate);
-        $('#glcanvas').mouseup(endRotate);
-        $('body').keypress(togglePerspective);
-        $(window).resize(function() {
-            CANVAS_X_OFFSET = $('#glcanvas').offset()['left'];
-            CANVAS_Y_OFFSET = $('#glcanvas').offset()['top'];
-            canvas.width = canvas.clientWidth;
-            canvas.height = canvas.clientHeight;
+        $('.glube').each(function(){
+            var glube = new GLube;
+
+            // animation
+            $(this).find('canvas').each(function() {
+                var canvas = this;
+                glube.start(this);
+                $(this).bind('contextmenu', function(e) { return false; });
+                $(this).mousedown(glube.startRotate);
+                $(this).mousemove(glube.rotate);
+                $(this).mouseup(glube.endRotate);
+                glube.reset();
+                glube.initControls();
+            });
+            // controls         
+            $(this).find('.reset-cube').click(function() {glube.reset();});
+            $(this).find('.scramble-cube').click(function() {glube.scramble()});
+            $(this).find('.run-alg').click(function() {
+                glube.isInitializing = false; 
+                var alg = $(this).prev().find('.algorithm').val();
+                var moves = glube.parseAlgorithm(alg);
+                glube.doAlgorithm(moves);
         });
-        initControls();
-        rubiksCube.reset();
-        $('#reset-cube').click(function() {rubiksCube.reset()});
-        $('#scramble-cube').click(scramble);
-        $('#run-alg').click(function() {
-            isInitializing = false; 
-            var moves = parseAlgorithm($('#algorithm').val());
-            doAlgorithm(moves);
         });  
     });
     
