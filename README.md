@@ -27,3 +27,5 @@ The current version is already embeddable with some manual work and is configura
 
 ## Special thanks
 Special thanks go to Tiffany Wang for her beautiful cube.
+
+Find our more about how to use GLube in the [documentation](https://github.com/blonkm/rubiks-cube/wiki/Documentation)
