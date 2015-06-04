@@ -19,7 +19,7 @@ Some people have recognized the same need and have provided alternatives already
 Google created a [great project](https://www.chrome.com/cubelab) for the anniversary of the Rubik's cube: a Google doodle on their home page. It was a completely playable Rubik's cube, made with Thee.js, HTML5 and CSS3. Again, it is a great project, but it looks more like a toy than a real cube. It is possible however that a really nice looking, realistic cube can be made on the foundation of the Google Cube code.  
 
 ## Plans for development
-The GCube project will ultimately be a full replacement for online cube algorithm demonstrations. The cubes will be easily 
+The GLube project will ultimately be a full replacement for online cube algorithm demonstrations. The cubes will be easily 
 pluggable in either a static website, a PHP site, or a WordPress blog (using a plugin). It will include tools for working
 with algorithms (inverse, mirror, etc). 
 
@@ -28,4 +28,4 @@ The current version is already embeddable with some manual work and is configura
 ## Special thanks
 Special thanks go to Tiffany Wang for her beautiful cube.
 
-Find our more about how to use GLube in the [documentation](https://github.com/blonkm/rubiks-cube/wiki/Documentation)
+Find out more about how to use GLube in the [documentation](https://github.com/blonkm/rubiks-cube/wiki/Documentation)
