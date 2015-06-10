@@ -990,7 +990,7 @@
     }
 
     function tick() {
-        requestAnimationFrame(tick);
+            requestAnimationFrame(tick, canvas);
         drawScene();
     }
 
