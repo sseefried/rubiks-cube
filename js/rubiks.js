@@ -1075,11 +1075,12 @@
 
         // on mousemove
     function rotate(event) {
+            event.preventDefault();
             if (leftMouseDown) {
             x_init_right = event.clientX;
             y_init_right = event.clientY;
-            var delta_x = parseInt((x_new_right - x_init_right) * 360 / this.width);
-                var delta_y = parseInt((y_new_right - y_init_right) * 360 / this.height);
+                var delta_x = parseInt((x_new_right - x_init_right) * 360 / canvas.width);
+                var delta_y = parseInt((y_new_right - y_init_right) * 360 / canvas.height);
                 var isOverThreshold = Math.abs(delta_x) > MIN_MOVE || Math.abs(delta_y) > MIN_MOVE;
    
                 if (!isRotating) {
@@ -1343,9 +1344,8 @@
                 glube.start(this);
                 $(this).bind('contextmenu', function(e) { return false; });
                 $(this).mousedown(glube.startRotate);
-                $(this).mousemove(glube.rotate);
-                $(this).mouseup(glube.endRotate);
-                $(this).mouseleave(glube.endRotate);
+                $(window).mousemove(glube.rotate);
+                $(window).mouseup(glube.endRotate);
                 glube.reset();
                 glube.initControls();
             });
