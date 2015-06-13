@@ -222,19 +222,20 @@
                 return;
             }
             var cubes = [];
-            this.selectedCubes.forEach(function(el) {
-                var value = el.coordinates[this.axisConstant];
+                var self = this;
+                this.selectedCubes.forEach(function(selCube) {
+                    var value = selCube.coordinates[self.axisConstant];
             for (var r = 0; r < 3; r++) {
                 for (var g = 0; g < 3; g++) {
                     for (var b = 0; b < 3; b++) {
-                        var cube = this.cubes[r][g][b];
-                        if (Math.abs(cube.coordinates[this.axisConstant] - value) < MARGIN_OF_ERROR) {
+                                var cube = self.cubes[r][g][b];
+                                if (Math.abs(cube.coordinates[self.axisConstant] - value) < MARGIN_OF_ERROR) {
                             cubes.push(cube);
                         }
                     }
                 }
             }
-            }, this);
+                });
             if (cubes.length >= 9) {
                 this.rotatedCubes = cubes;
                 // is this a slice layer?
