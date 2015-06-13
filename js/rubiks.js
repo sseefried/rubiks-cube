@@ -44,6 +44,7 @@
     var RIGHT_MOUSE = 2;
     var CANVAS_X_OFFSET = 0;
     var CANVAS_Y_OFFSET = 0;
+        var MIN_MOVE = 10;
 
     function RubiksCube() {
         this.selectedCubes = [];// an instance of Cube
@@ -217,7 +218,7 @@
          * AXIS is 0, 1, or 2 for the x-, y-, or z-coordinate.
          */
         this.setRotatedCubes = function(move) {
-            if (!this.rotationAxis) {
+                if (!this.rotationAxis || this.isRotating) {
                 return;
             }
             var cubes = [];
@@ -1065,31 +1066,43 @@
         return degrees * Math.PI / 180;
     }
 
+        // on mousemove
     function rotate(event) {
-        if (rightMouseDown) {
+            if (leftMouseDown) {
             x_init_right = event.clientX;
             y_init_right = event.clientY;
             var delta_x = parseInt((x_new_right - x_init_right) * 360 / this.width);
-            var delta_y = parseInt((y_new_right - y_init_right) * 360 / this.width);
+                var delta_y = parseInt((y_new_right - y_init_right) * 360 / this.height);
+                var isOverThreshold = Math.abs(delta_x) > MIN_MOVE || Math.abs(delta_y) > MIN_MOVE;
    
+                if (!isRotating) {
+                    if (rubiksCube.selectedCubes[0] !== null && isOverThreshold) {
+                        // move layer
+                        var x = event.pageX - CANVAS_X_OFFSET;
+                        var y = canvas.height - event.pageY + CANVAS_Y_OFFSET;
+                        new_coordinates = screenToObjectCoordinates(x, y);
+                        var direction = vec3.create();
+                        vec3.subtract(direction, new_coordinates, init_coordinates);
+                        vec3.normalize(direction, direction);
+                        rubiksCube.setRotationAxis(x, y, direction);
+                        rubiksCube.setRotatedCubes();
+                        isRotating = rubiksCube.rotatedCubes && rubiksCube.rotationAxis;
+                    }
+                }
+                if (rubiksCube.selectedCubes[0] == null) {
+                    // move cube
             var axis = [-delta_y, delta_x, 0];
             var degrees = Math.sqrt(delta_x * delta_x + delta_y * delta_y);
             var newRotationMatrix = mat4.create();
             mat4.rotate(newRotationMatrix, newRotationMatrix, degreesToRadians(degrees), axis);
             mat4.multiply(rotationMatrix, newRotationMatrix, rotationMatrix);
-        } else if (leftMouseDown && !isRotating) {
-            new_coordinates = screenToObjectCoordinates(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
-            var direction = vec3.create();
-            vec3.subtract(direction, new_coordinates, init_coordinates);
-            vec3.normalize(direction, direction);
-            rubiksCube.setRotationAxis(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET, direction);
-            rubiksCube.setRotatedCubes();
-            isRotating = rubiksCube.rotatedCubes && rubiksCube.rotationAxis;
+                }
         }
         x_new_right = event.clientX;
         y_new_right = event.clientY;    
     }
 
+        // on mousedown
     function startRotate(event) {
         if (event.button == LEFT_MOUSE) { // left mouse
             rubiksCube.selectedCubes = [];
@@ -1098,21 +1111,18 @@
                 init_coordinates = screenToObjectCoordinates(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
                 setTimeout(function() {
                     leftMouseDown = true;
+                        x_init_right = event.pageX;
+                        y_init_right = event.pageY;
                 }, 50);
             }
-        } else if (event.button == RIGHT_MOUSE) { // right mouse
-            rightMouseDown = true;
-            x_init_right = event.pageX;
-            y_init_right = event.pageY;
         }
     }
 
+        // on mouseup
     function endRotate(event) {
         if (event.button == LEFT_MOUSE && leftMouseDown) { // left mouse
             leftMouseDown = false;
             rubiksCube.algDone();
-        } else if (event.button == RIGHT_MOUSE) { // right mouse
-            rightMouseDown = false;
         }
     }
 
