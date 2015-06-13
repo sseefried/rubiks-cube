@@ -1338,6 +1338,7 @@
                 $(this).mousedown(glube.startRotate);
                 $(this).mousemove(glube.rotate);
                 $(this).mouseup(glube.endRotate);
+                $(this).mouseleave(glube.endRotate);
                 glube.reset();
                 glube.initControls();
             });
