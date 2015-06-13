@@ -695,42 +695,43 @@
             var x = this.coordinates[0];
             var y = this.coordinates[1];
             var z = this.coordinates[2];
+                var stickerDistance = 0.96;
             if (x == -1) {
                 this.stickers.push(new Sticker(this, this.COLORS['red'], function() {
                     this.cube.transform();
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [-1.001, 0, 0]);
+                        mat4.translate(modelViewMatrix, modelViewMatrix, [-stickerDistance, 0, 0]);
                     mat4.rotateZ(modelViewMatrix, modelViewMatrix, degreesToRadians(90));
                 }));
             } else if (x == 1) {
                 this.stickers.push(new Sticker(this, this.COLORS['orange'], function() {
                     this.cube.transform();
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [1.001, 0, 0]);
+                        mat4.translate(modelViewMatrix, modelViewMatrix, [stickerDistance, 0, 0]);
                     mat4.rotateZ(modelViewMatrix, modelViewMatrix, degreesToRadians(-90));
                 }));
             }
             if (y == -1) {
                 this.stickers.push(new Sticker(this, this.COLORS['yellow'], function() {
                     this.cube.transform();
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [0, -1.001, 0]);
+                        mat4.translate(modelViewMatrix, modelViewMatrix, [0, -stickerDistance, 0]);
                     mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(-180));
                 }));
             } else if (y == 1) {
                 this.stickers.push(new Sticker(this, this.COLORS['white'], function() {
                     this.cube.transform();
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [0, 1.001, 0]);
+                        mat4.translate(modelViewMatrix, modelViewMatrix, [0, stickerDistance, 0]);
                     setMatrixUniforms();
                 }));
             }
             if (z == 1) {
                 this.stickers.push(new Sticker(this, this.COLORS['blue'], function() {
                     this.cube.transform();
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, 1.001]);
+                        mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, stickerDistance]);
                     mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(90));
                 }));
             } else if (z == -1) {
                 this.stickers.push(new Sticker(this, this.COLORS['green'], function() {
                     this.cube.transform();
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -1.001]);
+                        mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -stickerDistance]);
                     mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(-90));
                 }));
             }
