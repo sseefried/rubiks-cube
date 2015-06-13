@@ -646,15 +646,20 @@
             perspectiveView();
             if (alg) {
                 this.degrees = 90;
+
+                    var initScript = $(canvas).data('initscript') || '';
                     $(canvas).parent().find('.algorithm').val(alg);
-                var moves = parseAlgorithm(alg);
-                if (algType === 'solver') {
+                    var moves = [];
+                    if (algType.toLowerCase() === 'solver') {
+	                    moves = parseAlgorithm(alg+initScript);
                 isInitializing = true;
                     moves = this.inverseMoveList(moves);
                     doAlgorithm(moves);
                 }
                     else {
-                    isInitializing = false;
+                        isInitializing = true;
+	                    moves = parseAlgorithm(initScript);
+                        doAlgorithm(moves);
             }
                 }
             else
