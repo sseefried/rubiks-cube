@@ -509,6 +509,8 @@
         this.perform = function(alg) {
             var that = this;
             var delay = 10;
+                if (!alg)
+                	return;
             if (!isRotating && alg.length > 0) {
                 var clone = alg.slice(0);
                 var move = clone.shift();
@@ -1241,6 +1243,8 @@
 
     function parseAlgorithm(algorithm) {
         var alg = algorithm;
+            if (!alg)
+            	return [];
         alg = alg.replace(/ /g, '');
             alg = alg.replace(/'/g,'3');
         alg = alg.replace(/-/g,'3');
@@ -1264,9 +1268,14 @@
     }
     
     function doAlgorithm(moves) {
+            if (!moves)
+                    return;
+            if (typeof moves === String)
+                    moves = parseAlgorithm(moves);
+            if (moves.length === 0)
+                    return;
         if (!isAnimating) {
             isAnimating = true;
-
             rubiksCube.perform(moves);
         }
     }
