@@ -15,11 +15,10 @@
     var rubiksCube;
     var shaderProgram;
 
-    var rightMouseDown = false;
-    var x_init_right;
-    var y_init_right;
-    var x_new_right;
-    var y_new_right;
+        var x_init;
+        var y_init;
+        var x_new;
+        var y_new;
     var leftMouseDown = false;
     var init_coordinates;
     var new_coordinates;
@@ -44,7 +43,7 @@
     var RIGHT_MOUSE = 2;
     var CANVAS_X_OFFSET = 0;
     var CANVAS_Y_OFFSET = 0;
-        var MIN_MOVE = 10;
+        var MIN_MOVE = 5;
 
     function RubiksCube() {
         this.selectedCubes = [];// an instance of Cube
@@ -1073,21 +1072,28 @@
         return degrees * Math.PI / 180;
     }
 
+        function relativePosition(event) {
+            var rect = canvas.getBoundingClientRect();
+            var left = event.clientX - rect.left;
+            var top = rect.height + rect.top - event.clientY;          
+            return {x:left, y:top}
+        }
+        
         // on mousemove
     function rotate(event) {
             event.preventDefault();
             if (leftMouseDown) {
-            x_init_right = event.clientX;
-            y_init_right = event.clientY;
-                var delta_x = parseInt((x_new_right - x_init_right) * 360 / canvas.width);
-                var delta_y = parseInt((y_new_right - y_init_right) * 360 / canvas.height);
+                x_init = event.clientX;
+                y_init = event.clientY;
+                var delta_x = -parseInt((x_new - x_init) * 360 / canvas.width);
+                var delta_y = parseInt((y_new - y_init) * 360 / canvas.height);
                 var isOverThreshold = Math.abs(delta_x) > MIN_MOVE || Math.abs(delta_y) > MIN_MOVE;
    
                 if (!isRotating) {
                     if (rubiksCube.selectedCubes[0] !== null && isOverThreshold) {
                         // move layer
-                        var x = event.pageX - CANVAS_X_OFFSET;
-                        var y = canvas.height - event.pageY + CANVAS_Y_OFFSET;
+                        var x = (relativePosition(event)).x;
+                        var y = (relativePosition(event)).y;
                         new_coordinates = screenToObjectCoordinates(x, y);
                         var direction = vec3.create();
                         vec3.subtract(direction, new_coordinates, init_coordinates);
@@ -1099,28 +1105,30 @@
                 }
                 if (rubiksCube.selectedCubes[0] == null) {
                     // move cube
-            var axis = [-delta_y, delta_x, 0];
+                    var axis = [-delta_y, -delta_x, 0];
             var degrees = Math.sqrt(delta_x * delta_x + delta_y * delta_y);
             var newRotationMatrix = mat4.create();
             mat4.rotate(newRotationMatrix, newRotationMatrix, degreesToRadians(degrees), axis);
             mat4.multiply(rotationMatrix, newRotationMatrix, rotationMatrix);
                 }
         }
-        x_new_right = event.clientX;
-        y_new_right = event.clientY;    
+            x_new = event.clientX;
+            y_new = event.clientY;    
     }
 
         // on mousedown
     function startRotate(event) {
         if (event.button == LEFT_MOUSE) { // left mouse
             rubiksCube.selectedCubes = [];
-            rubiksCube.selectCube(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
+                var x = (relativePosition(event)).x;
+                var y = (relativePosition(event)).y;
+                rubiksCube.selectCube(x, y);
             if (rubiksCube.selectedCubes.length > 0) {            
-                init_coordinates = screenToObjectCoordinates(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
+                    init_coordinates = screenToObjectCoordinates(x, y);
                 setTimeout(function() {
                     leftMouseDown = true;
-                        x_init_right = event.pageX;
-                        y_init_right = event.pageY;
+                        x_init = event.pageX;
+                        y_init = event.pageY;
                 }, 50);
             }
         }
