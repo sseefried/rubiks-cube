@@ -29,11 +29,13 @@ namespace GlubeApp {
                     $algType = 'solver';
                 }
                 $stickers = getInput('stickers', $n);
+                $initscript = getInput('initscript', $n);
 
                 $cube = new \stdClass;
                 $cube->alg = $alg;
                 $cube->algType = $algType;
                 $cube->stickers = $stickers;
+                $cube->initscript = $initscript;                
                 $cubes[$n] = $cube;
             }
             return $cubes;

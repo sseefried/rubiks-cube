@@ -88,7 +88,12 @@ $g->cubes = $g->initialize();
             <div class="row">
 <?php foreach ($g->cubes as $cube) {?>
                 <div class="glube col-md-3">
-                    <canvas data-alg="<?php echo $cube->alg ?>" data-type="<?php echo $cube->algType ?>" data-stickers="<?php echo $cube->stickers ?>"></canvas>
+                    <canvas 
+                            data-alg="<?php echo $cube->alg ?>" 
+                            data-type="<?php echo $cube->algType ?>" 
+                            data-stickers="<?php echo $cube->stickers ?>"
+                            data-initscript="<?php echo $cube->initscript ?>"
+                            ></canvas>
 	                <div>
                         <button class="scramble-cube btn btn-info btn-sm"><span class="glyphicon glyphicon-random"></span></button>                         
                         <button class="reset-cube btn btn-info btn-sm"><span class="glyphicon glyphicon-fast-backward"></span></button>                         
