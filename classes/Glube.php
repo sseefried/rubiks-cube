@@ -30,12 +30,15 @@ namespace GlubeApp {
                 }
                 $stickers = getInput('stickers', $n);
                 $initscript = getInput('initscript', $n);
+                $scrambleLength = getInput('scramble-length', $n);                
 
                 $cube = new \stdClass;
                 $cube->alg = $alg;
                 $cube->algType = $algType;
                 $cube->stickers = $stickers;
                 $cube->initscript = $initscript;                
+                $cube->scrambleLength = $scrambleLength;
+
                 $cubes[$n] = $cube;
             }
             return $cubes;

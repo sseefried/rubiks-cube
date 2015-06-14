@@ -99,7 +99,7 @@ $g->cubes = $g->initialize();
                         <button class="reset-cube btn btn-info btn-sm"><span class="glyphicon glyphicon-fast-backward"></span></button>                         
                         <div class="scramble">
                             <label>Length</label> 
-                            <input type="number" class="scramble-length" min="1" value="20" />
+                            <input type="number" class="scramble-length" min="1" value="<?php echo $cube->scrambleLength ?: 20 ?>" />
                             <pre class="@brand-info moveList" style="margin-top:1em">moves will appear here</pre>
             </div>
                         <div class="alg">
