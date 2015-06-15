@@ -625,6 +625,10 @@
             this.init();            
                 var alg = $(canvas).data('alg');
                 var algType = $(canvas).data('type');
+                this.playable = $(canvas).data('playable');
+                if (this.playable === "") {
+                    this.playable = true;
+                }
             // default order of RubikPlayer faces is F, R, D, B, L, U
             // we start with yellow on top
             var defaultStickers = "rrrrrrrrrgggggggggwwwwwwwwwooooooooobbbbbbbbbyyyyyyyyy";
@@ -1089,7 +1093,7 @@
                 var delta_y = parseInt((y_new - y_init) * 360 / canvas.height);
                 var isOverThreshold = Math.abs(delta_x) > MIN_MOVE || Math.abs(delta_y) > MIN_MOVE;
    
-                if (!isRotating) {
+                if (!isRotating && rubiksCube.playable) {
                     if (rubiksCube.selectedCubes[0] !== null && isOverThreshold) {
                         // move layer
                         var x = (relativePosition(event)).x;

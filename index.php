@@ -93,6 +93,7 @@ $g->cubes = $g->initialize();
                             data-type="<?php echo $cube->algType ?>" 
                             data-stickers="<?php echo $cube->stickers ?>"
                             data-initscript="<?php echo $cube->initscript ?>"
+                            data-playable="<?php echo $cube->playable ?>"
                             ></canvas>
 	                <div>
                         <button class="scramble-cube btn btn-info btn-sm"><span class="glyphicon glyphicon-random"></span></button>                         
