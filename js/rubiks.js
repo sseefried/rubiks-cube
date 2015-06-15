@@ -648,7 +648,8 @@
             }
             this.setStickers(stickers);
             perspectiveView();
-            if (alg) {
+                var initScript = $(canvas).data('initscript') || '';
+                if (alg+initScript !== '') {
                 this.degrees = 90;
 
                     var initScript = $(canvas).data('initscript') || '';
