@@ -652,7 +652,6 @@
                 if (alg+initScript !== '') {
                 this.degrees = 90;
 
-                    var initScript = $(canvas).data('initscript') || '';
                     $(canvas).parent().find('.algorithm').val(alg);
                     var moves = [];
                     if (algType.toLowerCase() === 'solver') {
