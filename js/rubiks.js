@@ -936,23 +936,11 @@
         return gl;
     }
 
-    function getShader(gl, id) {
-        var shaderScript = document.getElementById(id);
-        if (!shaderScript) {
-            return null;
-        }
-        var source = '';
-        var currentChild = shaderScript.firstChild;
-        while (currentChild) {
-            if (currentChild.nodeType == currentChild.TEXT_NODE) {
-                source += currentChild.textContent;
-            }
-            currentChild = currentChild.nextSibling;
-        }
+        function getShader(gl, source, shaderType) {
         var shader;
-        if (shaderScript.type == 'x-shader/x-fragment') {
+            if (shaderType == 'fragment') {
             shader = gl.createShader(gl.FRAGMENT_SHADER);
-        } else if (shaderScript.type == 'x-shader/x-vertex') {
+            } else if (shaderType == 'vertex') {
             shader = gl.createShader(gl.VERTEX_SHADER);
         } else {
             return null;
@@ -966,9 +954,11 @@
         return shader;
     }
 
-    function initShaders() {
-        var fragmentShader = getShader(gl, 'fragmentShader');
-        var vertexShader = getShader(gl, 'vertexShader');
+        this.initShaders = function() {
+            var vshader = this.vshader;
+            var fshader = this.fshader;
+            var fragmentShader = getShader(gl, vshader, 'vertex');
+            var vertexShader = getShader(gl, fshader, 'fragment');
         shaderProgram = gl.createProgram();
         gl.attachShader(shaderProgram, fragmentShader);
         gl.attachShader(shaderProgram, vertexShader);
@@ -1012,7 +1002,7 @@
             CANVAS_X_OFFSET = $(canvas).offset()['left'];
             CANVAS_Y_OFFSET = $(canvas).offset()['top'];
         gl = initWebGL(canvas);
-        initShaders();
+            this.initShaders();
         rubiksCube = new RubiksCube();
         perspectiveView();
 
@@ -1347,9 +1337,10 @@
     
     // global scope
     $(document).ready(function() {
-        $('.glube').each(function(){
+        function createGlube(vshader, fshader) {
             var glube = new GLube;
-
+            glube.vshader = vshader;
+            glube.fshader = fshader;
             // animation
             $(this).find('canvas').each(function() {
                 var canvas = this;
@@ -1370,7 +1361,16 @@
                 var moves = glube.parseAlgorithm(alg);
                 glube.doAlgorithm(moves);
         });
+        }
+        
+        function onShaderLoaded (data) {
+            var vshader = data.cube.vertex;
+            var fshader = data.cube.fragment;
+            $('.glube').each(function() {
+                createGlube.call(this, vshader, fshader);
         });  
+        }
+
+        SHADER_LOADER.load(onShaderLoaded);
     });
-    
 })();
