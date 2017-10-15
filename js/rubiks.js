@@ -1,15 +1,15 @@
 (function(){
     'use strict';
-    
-    /** a Rubik's cube made with WebGL
+
+    /** a Rubik's cubelet made with WebGL
      *
-     * @link https://github.com/blonkm/rubiks-cube
-     * @authors 
+     * @link https://github.com/blonkm/rubiks-cubelet
+     * @authors
      *      Tiffany Wang - https://github.com/tinnywang
      *      Michiel van der Blonk - blonkm@gmail.com
      * @license LGPL
      */
-    var GLube = function() { 
+    var GLube = function() {
     var canvas;
     var gl;
     var rubiksCube;
@@ -45,39 +45,47 @@
     var CANVAS_X_OFFSET = 0;
     var CANVAS_Y_OFFSET = 0;
 
-    function RubiksCube() {
-        this.selectedCubes = [];// an instance of Cube
-        this.rotatedCubes = null; // an array of Cubes
+    // Enumeration for cubelet sort
+    var CUBE_SORTS = { Rubiks: 0,  MirrorBlocks: 1 };
+
+    function RubiksCube(cubeSort) {
+        this.selectedCubelets = [];// an instance of
+        this.rotatedCubelets = null; // an array of Cubes
         this.rotationAxis = null; // a vec3
         this.axisConstant = null; // X_AXIS, Y_AXIS, or Z_AXIS
         this.rotationAngle = 0;
         this.degrees = DEGREES;
-        this.cubeVerticesBuffer = null;
-        this.cubeNormalsBuffer = null;
-        this.cubeFacesBuffer = null;
-        this.stickerVerticesBuffer = null;
-        this.stickerNormalsBuffer = null;
-        this.stickerFacesBuffer = null;
+        this.cubeletModels = null;
+        this.normalsCube = new NormalsCube();
+        this.cubelets = new Array(3);
+        this.noMove = {face:'', count:0, inverse:false};
+        this.currentMove = {face:'', count:0, inverse:false};
         this.pickingFramebuffer = null;
         this.pickingTexture = null;
         this.pickingRenderBuffer = null;
-        this.normalsCube = new NormalsCube();
-        this.cubes = new Array(3);
-        this.noMove = {face:'', count:0, inverse:false};
-        this.currentMove = {face:'', count:0, inverse:false};
 
         this.init = function() {
+            var r,g,b;
+            var coordinates;
+            var selectorColor;
+
             this.initTextureFramebuffer();
-            this.initCubeBuffers();
-            this.initStickerBuffers();
+            this.initCubeletModels(cubeSort);
+
             for (var r = 0; r < 3; r++) {
-                this.cubes[r] = new Array(3);
+                this.cubelets[r] = new Array(3);
                 for (var g = 0; g < 3; g++) {
-                    this.cubes[r][g] = new Array(3);
+                    this.cubelets[r][g] = new Array(3);
                     for (var b = 0; b < 3; b++) {
-                        var coordinates = [r - 1, g - 1, b - 1];
-                        var color = [r / 3, g / 3, b / 3, 1.0];
-                        this.cubes[r][g][b] = new Cube(this, coordinates, color);
+                        coordinates = [r - 1, g - 1, b - 1];
+                        selectorColor = [ r / 3, g / 3, b / 3, 1.0];
+                        this.cubelets[r][g][b] =
+                          new Cubelet(
+                                this,
+                                this.cubeletModels[r][g][b],
+                                coordinates,
+                                selectorColor
+                                );
                     }
                 }
             }
@@ -105,46 +113,42 @@
             gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.pickingRenderBuffer);
         }
 
-        this.initCubeBuffers = function() {
-            // vertices
-            this.cubeVerticesBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeVerticesBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeModel.vertices), gl.STATIC_DRAW);
-            // normals
-            this.cubeNormalsBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeNormalsBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeModel.normals), gl.STATIC_DRAW);
-            // faces
-            this.cubeFacesBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.cubeFacesBuffer);
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeModel.faces), gl.STATIC_DRAW);
-        }
 
-        this.initStickerBuffers = function() {
-            // vertices
-            this.stickerVerticesBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.stickerVerticesBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(stickerModel.vertices), gl.STATIC_DRAW);
-            // normals
-            this.stickerNormalsBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.stickerNormalsBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(stickerModel.normals), gl.STATIC_DRAW);
-            // faces
-            this.stickerFacesBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.stickerFacesBuffer);
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(stickerModel.faces), gl.STATIC_DRAW);
-        }
+        this.initCubeletModels = function(cubeSort) {
+          var threeCubed = Math.pow(3,3);
+          var i,j,k;
+          this.cubeletModels = new Array(threeCubed);
+          for (var i = 0; i < 3; i++) {
+            this.cubeletModels[i] = new Array(3);
+            for (var j = 0; j < 3; j++) {
+              this.cubeletModels[i][j] = new Array(3);
+              for (var k = 0; k < 3; k++) {
 
+                if ( cubeSort == CUBE_SORTS.MirrorBlocks ) {
+                  this.cubeletModels[i][j][k] = null;
+                  // FIXME: not done yet
+                } else { // default is CUBE_SORTS.MirrorBlocks
+                  if (i == 0 && j == 1 && k == 2 ) {
+                    this.cubeletModels[i][j][k] = alternateCubeletModel;
+                  } else {
+                    this.cubeletModels[i][j][k] = rubiksCubeletModel;
+
+                  }
+                }
+              }
+            }
+          }
+        }
 
         this.initCenters = function() {
             this.centerCubes = {
-                left:   this.cubes[1][1][2],
-                right:  this.cubes[1][1][0],
-                up:     this.cubes[1][0][1],
-                down:   this.cubes[1][2][1],
-                front:  this.cubes[0][1][1],
-                back:   this.cubes[2][1][1],
-                core:   this.cubes[1][1][1]
+                left:   this.cubelets[1][1][2],
+                right:  this.cubelets[1][1][0],
+                up:     this.cubelets[1][0][1],
+                down:   this.cubelets[1][2][1],
+                front:  this.cubelets[0][1][1],
+                back:   this.cubelets[2][1][1],
+                core:   this.cubelets[1][1][1]
             }
         }
 
@@ -162,10 +166,11 @@
             for (var r = 0; r < 3; r++) {
                 for (var g = 0; g < 3; g++) {
                     for (var b = 0; b < 3; b++) {
-                        var cube = this.cubes[r][g][b];
-                        cube.draw(cubeModel.ambient);
-                        for (var s in cube.stickers) {
-                            cube.stickers[s].draw();
+                        var cubelet = this.cubelets[r][g][b];
+                        // Overwrite the selectorColor
+                        cubelet.draw(this.cubeletModels[r][g][b].blockModel.ambient);
+                        for (var s in cubelet.stickers) {
+                            cubelet.stickers[s].draw();
                         }
                     }
                 }
@@ -186,8 +191,8 @@
             for (var r = 0; r < 3; r++) {
                 for (var g = 0; g < 3; g++) {
                     for (var b = 0; b < 3; b++) {
-                        var cube = this.cubes[r][g][b];
-                        cube.draw(cube.color);
+                        var cubelet = this.cubelets[r][g][b];
+                        cubelet.draw(cubelet.selectorColor);
                     }
                 }
             }
@@ -213,57 +218,57 @@
         }
 
         /*
-         * Sets this.rotatedCubes to an array of cubes that share the same AXIS coordinate as this.selectedCubes.
+         * Sets this.rotatedCubelets to an array of cubelets that share the
+         * same AXIS coordinate as this.selectedCubelets.
          * AXIS is 0, 1, or 2 for the x-, y-, or z-coordinate.
          */
-        this.setRotatedCubes = function(move) {
+        this.setRotatedCubelets = function(move) {
             if (!this.rotationAxis) {
                 return;
             }
-            var cubes = [];
-            this.selectedCubes.forEach(function(el) {
+            var cubelets = [];
+            this.selectedCubelets.forEach(function(el) {
                 var value = el.coordinates[this.axisConstant];
             for (var r = 0; r < 3; r++) {
                 for (var g = 0; g < 3; g++) {
                     for (var b = 0; b < 3; b++) {
-                        var cube = this.cubes[r][g][b];
-                        if (Math.abs(cube.coordinates[this.axisConstant] - value) < MARGIN_OF_ERROR) {
-                            cubes.push(cube);
+                        var cubelet = this.cubelets[r][g][b];
+                        if (Math.abs(cubelet.coordinates[this.axisConstant] - value) < MARGIN_OF_ERROR) {
+                            cubelets.push(cubelet);
                         }
                     }
                 }
             }
             }, this);
-            if (cubes.length >= 9) {
-                this.rotatedCubes = cubes;
+            if (cubelets.length >= 9) {
+                this.rotatedCubelets = cubelets;
                 // is this a slice layer?
                 var i;
                 var that = this;
-                cubes.forEach(function(cube, i, cubes) {
-                    if (cube.stickers.length==0) {
-                        var slices = ['S', 'E', 'M']; //x,y,z
-                        var slice = slices[that.axisConstant];
-                        var x = that.rotationAxis[X_AXIS];
-                        var y = that.rotationAxis[Y_AXIS];
-                        var z = that.rotationAxis[Z_AXIS];
-                        var sum = x+y+z;
-                        var inverse = false;
-                        inverse |= slice=='M' && sum==1;
-                        inverse |= slice=='E' && sum==1;
-                        inverse |= slice=='S' && sum==-1; // silly cube notation
-                        // update centers for slice moves
-                        var m = (move===undefined) ? 1 : move.count;
-                        while (m-- >0) {
+                cubelets.forEach(function(cubelet, i, cubelets) {
+                    if (cubelet.stickers.length==0) {
+                      var slices = ['S', 'E', 'M']; //x,y,z
+                      var slice = slices[that.axisConstant];
+                      var x = that.rotationAxis[X_AXIS];
+                      var y = that.rotationAxis[Y_AXIS];
+                      var z = that.rotationAxis[Z_AXIS];
+                      var sum = x+y+z;
+                      var inverse = false;
+                      inverse |= slice=='M' && sum==1;
+                      inverse |= slice=='E' && sum==1;
+                      inverse |= slice=='S' && sum==-1; // silly cubelet notation
+                      // update centers for slice moves
+                      var m = (move===undefined) ? 1 : move.count;
+                      while (m-- >0) {
                         that.updateCenters(slice, inverse);
+                      }
                     }
-                        
-                    }
-                    });
+                });
             }
         }
 
         /*
-         * Rotates this.rotatedCubes around this.rotationAxis by this.degrees.
+         * Rotates this.rotatedCubelets around this.rotationAxis by this.degrees.
          */
         this.rotateLayer = function(isDouble) {
             var fullTurn = isDouble ? 180 : 90;
@@ -288,30 +293,30 @@
             var newRotationMatrix = mat4.create();
             mat4.rotate(newRotationMatrix, newRotationMatrix, degreesToRadians(this.degrees), this.rotationAxis);
 
-            for (var c in this.rotatedCubes) {
-                var cube = this.rotatedCubes[c];
-                vec3.transformMat4(cube.coordinates, cube.coordinates, newRotationMatrix);
-                mat4.multiply(cube.rotationMatrix, newRotationMatrix, cube.rotationMatrix);
+            for (var c in this.rotatedCubelets) {
+                var cubelet = this.rotatedCubelets[c];
+                vec3.transformMat4(cubelet.coordinates, cubelet.coordinates, newRotationMatrix);
+                mat4.multiply(cubelet.rotationMatrix, newRotationMatrix, cubelet.rotationMatrix);
             }
         }
 
-        this.colorToCube = function(rgba) {
+        this.selectorColorToCubelet = function(rgba) {
             var r = rgba[0];
             var g = rgba[1];
             var b = rgba[2];
-            if (r == 255 && g == 255 && b == 255) { // clicked outside the cube
+            if (r == 255 && g == 255 && b == 255) { // clicked outside the cubelet
                 return null;
             } else {
-                return this.cubes[r % 3][g % 3][b % 3];
+                return this.cubelets[r % 3][g % 3][b % 3];
             }
         }
 
-        this.selectCube = function(x, y) {
+        this.selectCubelet = function(x, y) {
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.pickingFramebuffer);
             var pixelValues = new Uint8Array(4);
             gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelValues);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            this.selectedCubes.push(this.colorToCube(pixelValues));
+            this.selectedCubelets.push(this.selectorColorToCubelet(pixelValues));
         }
 
         this.setRotationAxis = function(x, y, direction) {
@@ -348,17 +353,17 @@
                 [0, 1, 0],
                 [0, 0, 1]
             ];
-            this.selectedCubes.push(this.cubes[r][g][b]);
+            this.selectedCubelets.push(this.cubelets[r][g][b]);
             this.axisConstant = axis;
             this.rotationAxis = rot[axis];
             if (inverse)
                 vec3.scale(this.rotationAxis, this.rotationAxis, -1);
-            this.setRotatedCubes();
+            this.setRotatedCubelets();
             isRotating = true;
         }
 
         /*
-         * For testing only: timed transform of the cube, rotating a layer
+         * For testing only: timed transform of the cubelet, rotating a layer
          */
         this.doTransform = function(params) {
             var that = this;
@@ -444,10 +449,10 @@
                     this.centerCubes = centersInverse[layer];
                 else
                     this.centerCubes = centers[layer];
-                this.centerCubes.core = this.cubes[1][1][1];
+                this.centerCubes.core = this.cubelets[1][1][1];
             }
         }
-        
+
         this.move = function(move) {
             var rot = {
                 X: [1, 0, 0],
@@ -473,7 +478,7 @@
                 "F": {cubies:[F], axis:X_AXIS, rotation:rot.X, ccw:false},
                 "B": {cubies:[B], axis:X_AXIS, rotation:rot.X, ccw:true},
 
-                // use center of cube for slices
+                // use center of cubelet for slices
                 "M": {cubies:[C], axis:Z_AXIS, rotation:rot.Z, ccw:true},
                 "E": {cubies:[C], axis:Y_AXIS, rotation:rot.Y, ccw:true},
                 "S": {cubies:[C], axis:X_AXIS, rotation:rot.X, ccw:false},
@@ -486,23 +491,23 @@
 
                 "f": {cubies:[F,C], axis:X_AXIS, rotation:rot.X, ccw:false},
                 "b": {cubies:[B,C], axis:X_AXIS, rotation:rot.X, ccw:true},
-               
+
                 "x": {cubies:[L,C,R], axis:Z_AXIS, rotation:rot.Z, ccw:false},
                 "y": {cubies:[U,C,D], axis:Y_AXIS, rotation:rot.Y, ccw:false},
                 "z": {cubies:[F,C,B], axis:X_AXIS, rotation:rot.X, ccw:false}
             };
 
-            this.selectedCubes = layers[move.face].cubies;
+            this.selectedCubelets = layers[move.face].cubies;
             this.axisConstant = layers[move.face].axis;
             this.rotationAxis = layers[move.face].rotation;
             // not a true counter clockwise
             // but instead a ccw over this axis seen from origin
-            if (layers[move.face].ccw) 
+            if (layers[move.face].ccw)
                 inverse = !inverse;
             if (inverse) {
                 vec3.scale(this.rotationAxis, this.rotationAxis, -1);
             }
-            this.setRotatedCubes(move);
+            this.setRotatedCubelets(move);
             isRotating = true;
         }
 
@@ -514,14 +519,14 @@
                 var move = clone.shift();
                 if (!move.count)
                     move.count = 1;
-                    this.move(move);                
+                    this.move(move);
                 this.currentMove = move;
                 that.setNormals = 'MESxyz'.match(move.face)!=null;
                 setTimeout(function() {that.perform(clone)}, delay);
             }
             else {
                 if (alg.length > 0)
-                    setTimeout(function() {that.perform(alg)}, delay);        
+                    setTimeout(function() {that.perform(alg)}, delay);
                 else
                     this.algDone();
             }
@@ -549,7 +554,7 @@
               return {face:move.face, count:move.count, inverse:!move.inverse};
             });
         }
-        
+
         this.setStickers = function(stickers) {
             var positions = "FUL,FU,FUR,FL,F,FR,FDL,FD,FDR,RFU,RU,RBU,RF,R,RB,RFD,RD,RBD,DLF,DF,DRF,DL,D,DR,DLB,DB,DRB,BUR,BU,BUL,BR,B,BL,BDR,BD,BDL,LBU,LU,LFU,LB,L,LF,LBD,LD,LFD,ULB,UB,URB,UL,U,UR,ULF,UF,URF".split(',');
 
@@ -564,25 +569,25 @@
                 k:'black' //key (from CMYK)
             };
             var r,g,b;
-            var cube;
+            var cubelet;
             var x,y,z;
             var position;
-            
+
             var arrayRotate = function(arr, reverse){
               if(reverse)
                 arr.push(arr.shift());
               else
                 arr.unshift(arr.pop());
               return arr;
-            } 
+            }
 
             for (var r = 0; r < 3; r++) {
                 for (var g = 0; g < 3; g++) {
                     for (var b = 0; b < 3; b++) {
-                        cube = this.cubes[r][g][b];
-                        x = cube.coordinates[0];
-                        y = cube.coordinates[1];
-                        z = cube.coordinates[2];
+                        cubelet = this.cubelets[r][g][b];
+                        x = cubelet.coordinates[0];
+                        y = cubelet.coordinates[1];
+                        z = cubelet.coordinates[2];
                         var faces=[];
                         if (x === -1) faces.push('F'); else if (x === 1) faces.push('B');
                         if (y === -1) faces.push('U'); else if (y === 1) faces.push('D');
@@ -591,7 +596,7 @@
                         // faces.length=2 => edge
                         // faces.length=3 => corner
                         position = faces;
-                        faces.forEach(function(value, key) {                            
+                        faces.forEach(function(value, key) {
                             var index = positions.indexOf(position.join(''));
                             var ch;
                             if (stickers.length >= index+1) {
@@ -603,29 +608,29 @@
                             else {
                                 ch = 'x';
                             }
-                                
-                            var el = cube.stickers[key];
+
+                            var el = cubelet.stickers[key];
                             var cr = parseInt(el.color[0]*255.0);
                             var cg = parseInt(el.color[1]*255.0);
                             var cb = parseInt(el.color[2]*255.0);
-                            cube.stickers[key].color = cube.COLORS[colors[ch]];
+                            cubelet.stickers[key].color = cubelet.COLORS[colors[ch]];
                             position = arrayRotate(position, true);
                         });
-                         
+
                         }
                     }
                 }
             };
-        
-        
+
+
         this.reset = function() {
-            this.init();            
+            this.init();
                 var alg = $(canvas).data('alg');
                 var algType = $(canvas).data('type');
             // default order of RubikPlayer faces is F, R, D, B, L, U
             // we start with yellow on top
             var defaultStickers = "rrrrrrrrrgggggggggwwwwwwwwwooooooooobbbbbbbbbyyyyyyyyy";
-                var stickers = $(canvas).data('stickers') || defaultStickers; 
+                var stickers = $(canvas).data('stickers') || defaultStickers;
             var stickerSets = {
                 CROSS:    "xxxxrxxrxxxxxgxxgxxwxwwwxwxxxxxoxxoxxxxxbxxbxxxxxyxxxx",
                 FL:       "xxxxxxrrrxxxxxxgggwwwwwwwwwxxxxxxoooxxxxxxbbbxxxxxxxxx",
@@ -660,10 +665,26 @@
 
     }
 
-    function Cube(rubiksCube, coordinates, color) {
+    /*
+     * Note:
+     *  The selectorColor is not a real color. It's a hack. It is used by
+     *  selectorColorToCubelet to determine, for a given mouse (x,y), which
+     *  cubelet has been selected.
+     */
+    function Cubelet(rubiksCube, cubeletModel, coordinates, selectorColor) {
+        this.model = cubeletModel;
+        this.selectorColor = selectorColor; // Hacky
+
+        this.cubeVerticesBuffer = null;
+        this.cubeNormalsBuffer = null;
+        this.cubeFacesBuffer = null;
+        this.stickerVerticesBuffer = null;
+        this.stickerNormalsBuffer = null;
+        this.stickerFacesBuffer = null;
+
+
         this.rubiksCube = rubiksCube;
         this.coordinates = coordinates;
-        this.color = color;
         this.rotationMatrix = mat4.create();
         this.translationVector = vec3.create();
         this.stickers = [];
@@ -679,8 +700,11 @@
         }
 
         this.init = function() {
+            this.initCubeBuffers();
+            this.initStickerBuffers();
+
             vec3.scale(this.translationVector, this.coordinates, 2);
-            this.initStickers();
+            this.initStickers(); // initialise the six stickers for this cubelet
         }
 
         this.initStickers = function() {
@@ -689,51 +713,81 @@
             var z = this.coordinates[2];
             if (x == -1) {
                 this.stickers.push(new Sticker(this, this.COLORS['red'], function() {
-                    this.cube.transform();
+                    this.cubelet.transform();
                     mat4.translate(modelViewMatrix, modelViewMatrix, [-1.001, 0, 0]);
                     mat4.rotateZ(modelViewMatrix, modelViewMatrix, degreesToRadians(90));
                 }));
             } else if (x == 1) {
                 this.stickers.push(new Sticker(this, this.COLORS['orange'], function() {
-                    this.cube.transform();
+                    this.cubelet.transform();
                     mat4.translate(modelViewMatrix, modelViewMatrix, [1.001, 0, 0]);
                     mat4.rotateZ(modelViewMatrix, modelViewMatrix, degreesToRadians(-90));
                 }));
             }
             if (y == -1) {
                 this.stickers.push(new Sticker(this, this.COLORS['yellow'], function() {
-                    this.cube.transform();
+                    this.cubelet.transform();
                     mat4.translate(modelViewMatrix, modelViewMatrix, [0, -1.001, 0]);
                     mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(-180));
                 }));
             } else if (y == 1) {
                 this.stickers.push(new Sticker(this, this.COLORS['white'], function() {
-                    this.cube.transform();
+                    this.cubelet.transform();
                     mat4.translate(modelViewMatrix, modelViewMatrix, [0, 1.001, 0]);
                     setMatrixUniforms();
                 }));
             }
             if (z == 1) {
                 this.stickers.push(new Sticker(this, this.COLORS['blue'], function() {
-                    this.cube.transform();
+                    this.cubelet.transform();
                     mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, 1.001]);
                     mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(90));
                 }));
             } else if (z == -1) {
                 this.stickers.push(new Sticker(this, this.COLORS['green'], function() {
-                    this.cube.transform();
+                    this.cubelet.transform();
                     mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -1.001]);
                     mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(-90));
                 }));
             }
         }
 
-        this.init();
 
         this.transform = function() {
             mat4.multiply(modelViewMatrix, modelViewMatrix, this.rotationMatrix);
             mat4.translate(modelViewMatrix, modelViewMatrix, this.translationVector);
         }
+
+        this.initCubeBuffers = function() {
+            // vertices
+            this.cubeVerticesBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeVerticesBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeletModel.blockModel.vertices), gl.STATIC_DRAW);
+            // normals
+            this.cubeNormalsBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeNormalsBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeletModel.blockModel.normals), gl.STATIC_DRAW);
+            // faces
+            this.cubeFacesBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.cubeFacesBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeletModel.blockModel.faces), gl.STATIC_DRAW);
+        }
+
+        this.initStickerBuffers = function() {
+            // vertices
+            this.stickerVerticesBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.stickerVerticesBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeletModel.stickerModel.vertices), gl.STATIC_DRAW);
+            // normals
+            this.stickerNormalsBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.stickerNormalsBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeletModel.stickerModel.normals), gl.STATIC_DRAW);
+            // faces
+            this.stickerFacesBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.stickerFacesBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeletModel.stickerModel.faces), gl.STATIC_DRAW);
+        }
+
 
         this.draw = function(color) {
             var mvMatrix = mat4.create();
@@ -741,26 +795,29 @@
             this.transform();
             setMatrixUniforms();
 
-            gl.uniform4fv(shaderProgram.ambient, color);
-            gl.uniform4fv(shaderProgram.diffuse, cubeModel.diffuse);
-            gl.uniform4fv(shaderProgram.specular, cubeModel.specular);
-            gl.uniform1f(shaderProgram.shininess, cubeModel.shininess);
+            gl.uniform4fv(shaderProgram.ambient,  color);
+            gl.uniform4fv(shaderProgram.diffuse,  cubeletModel.blockModel.diffuse);
+            gl.uniform4fv(shaderProgram.specular, cubeletModel.blockModel.specular);
+            gl.uniform1f(shaderProgram.shininess, cubeletModel.blockModel.shininess);
             // vertices
-            gl.bindBuffer(gl.ARRAY_BUFFER, rubiksCube.cubeVerticesBuffer);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeVerticesBuffer);
             gl.vertexAttribPointer(shaderProgram.vertexPosition, 3, gl.FLOAT, false, 0, 0);
             // normals
-            gl.bindBuffer(gl.ARRAY_BUFFER, rubiksCube.cubeNormalsBuffer);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeNormalsBuffer);
             gl.vertexAttribPointer(shaderProgram.vertexNormal, 3, gl.FLOAT, false, 0, 0);
             // faces
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, rubiksCube.cubeFacesBuffer);
-            gl.drawElements(gl.TRIANGLES, cubeModel.faces.length, gl.UNSIGNED_SHORT, 0);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.cubeFacesBuffer);
+            gl.drawElements(gl.TRIANGLES, cubeletModel.blockModel.faces.length, gl.UNSIGNED_SHORT, 0);
 
             mat4.copy(modelViewMatrix, mvMatrix);
         }
+
+        this.init();
+
     }
 
-    function Sticker(cube, color, transform) {
-        this.cube = cube;
+    function Sticker(cubelet, color, transform) {
+        this.cubelet = cubelet;
         this.color = color;
         this.transform = transform;
 
@@ -770,25 +827,25 @@
             this.transform();
             setMatrixUniforms();
 
-            gl.uniform4fv(shaderProgram.ambient, this.color);
-            gl.uniform4fv(shaderProgram.diffuse, stickerModel.diffuse);
-            gl.uniform4fv(shaderProgram.specular, stickerModel.specular);
-            gl.uniform1f(shaderProgram.shininess, stickerModel.shininess);
+            gl.uniform4fv(shaderProgram.ambient,  this.color);
+            gl.uniform4fv(shaderProgram.diffuse,  cubelet.model.stickerModel.diffuse);
+            gl.uniform4fv(shaderProgram.specular, cubelet.model.stickerModel.specular);
+            gl.uniform1f(shaderProgram.shininess, cubelet.model.stickerModel.shininess);
             // vertices
-            gl.bindBuffer(gl.ARRAY_BUFFER, cube.rubiksCube.stickerVerticesBuffer);
+            gl.bindBuffer(gl.ARRAY_BUFFER, cubelet.stickerVerticesBuffer);
             gl.vertexAttribPointer(shaderProgram.vertexPosition, 3, gl.FLOAT, false, 0, 0);
             // normals
-            gl.bindBuffer(gl.ARRAY_BUFFER, cube.rubiksCube.stickerNormalsBuffer);
+            gl.bindBuffer(gl.ARRAY_BUFFER, cubelet.stickerNormalsBuffer);
             gl.vertexAttribPointer(shaderProgram.vertexNormal, 3, gl.FLOAT, false, 0, 0);
             // faces
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cube.rubiksCube.stickerFacesBuffer);
-            gl.drawElements(gl.TRIANGLES, stickerModel.faces.length, gl.UNSIGNED_SHORT, 0);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubelet.stickerFacesBuffer);
+            gl.drawElements(gl.TRIANGLES, cubelet.model.stickerModel.faces.length, gl.UNSIGNED_SHORT, 0);
 
             mat4.copy(modelViewMatrix, mvMatrix);
         }
     }
 
-    function NormalsCube() {
+    function NormalsCube(i,j,k) {
         this.normalsFramebuffer = null;
         this.normalsTexture = null;
         this.normalsRenderbuffer = null;
@@ -804,13 +861,14 @@
             'yellow': [1.0, 1.0, 0.0, 1.0]
         }
         this.NORMALS = {
-            'blue': [-1, 0, 0],
-            'green': [0, 0, -1],
-            'orange': [1, 0, 0],
-            'red': [0, 0, 1],
-            'black': [0, -1, 0],
-            'yellow': [0, 1, 0]
+            'blue':   [-1, 0,  0],
+            'green':  [0,  0, -1],
+            'orange': [1,  0,  0],
+            'red':    [0,  0,  1],
+            'black':  [0, -1,  0],
+            'yellow': [0,  1,  0]
         }
+
         this.init = function() {
             this.initTextureFramebuffer();
             this.initBuffers();
@@ -886,7 +944,7 @@
             gl.uniform1i(shaderProgram.lighting, 1);
         }
 
-        this.colorToNormal = function(rgba) {
+        this.selectorColorToNormal = function(rgba) {
             var r = (rgba[0] / 255).toFixed(1);
             var g = (rgba[1] / 255).toFixed(1);
             var b = (rgba[2] / 255).toFixed(1);
@@ -904,7 +962,7 @@
             var pixelValues = new Uint8Array(4);
             gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelValues);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            return this.colorToNormal(pixelValues);
+            return this.selectorColorToNormal(pixelValues);
         }
     }
 
@@ -913,7 +971,10 @@
             console.log("Your browser doesn't support WebGL.")
                 return null;
         }
-        gl = canvas.getContext('webgl', {preserveDrawingBuffer: true, antialias:true}) || canvas.getContext('experimental-webgl', {preserveDrawingBuffer: true, antialias:true});
+        gl = canvas.getContext('webgl',
+              {preserveDrawingBuffer: true, antialias:true}) ||
+             canvas.getContext('experimental-webgl',
+              {preserveDrawingBuffer: true, antialias:true});
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
         if (!gl) {
@@ -983,7 +1044,7 @@
         }
 
         rubiksCube.drawToNormalsFramebuffer();
-        rubiksCube.drawToPickingFramebuffer(); 
+        rubiksCube.drawToPickingFramebuffer();
         if (!isInitializing) {
         rubiksCube.draw();
     }
@@ -1069,7 +1130,7 @@
             y_init_right = event.clientY;
             var delta_x = parseInt((x_new_right - x_init_right) * 360 / this.width);
             var delta_y = parseInt((y_new_right - y_init_right) * 360 / this.width);
-   
+
             var axis = [-delta_y, delta_x, 0];
             var degrees = Math.sqrt(delta_x * delta_x + delta_y * delta_y);
             var newRotationMatrix = mat4.create();
@@ -1081,18 +1142,18 @@
             vec3.subtract(direction, new_coordinates, init_coordinates);
             vec3.normalize(direction, direction);
             rubiksCube.setRotationAxis(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET, direction);
-            rubiksCube.setRotatedCubes();
-            isRotating = rubiksCube.rotatedCubes && rubiksCube.rotationAxis;
+            rubiksCube.setRotatedCubelets();
+            isRotating = rubiksCube.rotatedCubelets && rubiksCube.rotationAxis;
         }
         x_new_right = event.clientX;
-        y_new_right = event.clientY;    
+        y_new_right = event.clientY;
     }
 
     function startRotate(event) {
         if (event.button == LEFT_MOUSE) { // left mouse
-            rubiksCube.selectedCubes = [];
-            rubiksCube.selectCube(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
-            if (rubiksCube.selectedCubes.length > 0) {            
+            rubiksCube.selectedCubelets = [];
+            rubiksCube.selectCubelet(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
+            if (rubiksCube.selectedCubelets.length > 0) {
                 init_coordinates = screenToObjectCoordinates(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
                 setTimeout(function() {
                     leftMouseDown = true;
@@ -1197,7 +1258,7 @@
                 {face:"E", inverse:false},
                 {face:"E", inverse:true},
                 {face:"S", inverse:false},
-                {face:"S", inverse:true} 
+                {face:"S", inverse:true}
                 ]);
             return;
         }
@@ -1230,7 +1291,7 @@
                 prevIndex = moveIndex;
                 moveCount = 1 + Math.floor(Math.random()*2);
                 inverse = moveCount==1 && Math.random() < 0.5;
-                moveList.push({face:randomMove, inverse:inverse, count:moveCount});            
+                moveList.push({face:randomMove, inverse:inverse, count:moveCount});
             }
             rubiksCube.perform(moveList);
         var ret = rubiksCube.moveListToString(moveList);
@@ -1262,7 +1323,7 @@
 
         return moveList;
     }
-    
+
     function doAlgorithm(moves) {
         if (!isAnimating) {
             isAnimating = true;
@@ -1270,7 +1331,7 @@
             rubiksCube.perform(moves);
         }
     }
-    
+
     function initControls() {
         $('#controls .btn').click(function() {
             var arrControls = [
@@ -1278,7 +1339,7 @@
                 "R-prime","L-prime","U-prime","D-prime","F-prime","B-prime",
                 "R2","L2","U2","D2","F2","B2"
                 ];
-            var control = this.id.replace('move-','');        
+            var control = this.id.replace('move-','');
             var prime = false;
             var doubleMove = false;
             if (control.match('prime'))
@@ -1287,7 +1348,7 @@
                 doubleMove = true;
             var layer = control.charAt(0);
             var moveList = [];
-            moveList.push({face:layer, inverse:prime, count:doubleMove?2:1});            
+            moveList.push({face:layer, inverse:prime, count:doubleMove?2:1});
             rubiksCube.perform(moveList);
         });
     }
@@ -1305,7 +1366,7 @@
         this.endRotate = endRotate;
         this.togglePerspective = togglePerspective;
     };
-    
+
     // global scope
     $(document).ready(function() {
         $('.glube').each(function(){
@@ -1322,16 +1383,16 @@
                 glube.reset();
                 glube.initControls();
         });
-            // controls         
-            $(this).find('.reset-cube').click(function() {glube.reset();});
-            $(this).find('.scramble-cube').click(function() {glube.scramble()});
+            // controls
+            $(this).find('.reset-cubelet').click(function() {glube.reset();});
+            $(this).find('.scramble-cubelet').click(function() {glube.scramble()});
             $(this).find('.run-alg').click(function() {
-                glube.isInitializing = false; 
+                glube.isInitializing = false;
                 var alg = $(this).prev().find('.algorithm').val();
                 var moves = glube.parseAlgorithm(alg);
                 glube.doAlgorithm(moves);
     });
-        });  
+        });
     });
-    
+
 })();
