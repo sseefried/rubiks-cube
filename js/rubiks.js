@@ -26,7 +26,7 @@
     var isRotating = false;
     var isAnimating = false;
     var isInitializing = true;
-    var eye = [0, 0, -17];
+    var eye = [0, 0, -20];
     var center = [0, 0, 0];
     var up = [0, 1, 0];
     var fov = -19.5;
@@ -67,29 +67,70 @@
         this.init = function() {
             var r,g,b;
             var coordinates;
+            var index;
             var selectorColor;
 
             this.initTextureFramebuffer();
             this.initCubeletModels(cubeSort);
+
 
             for (var r = 0; r < 3; r++) {
                 this.cubelets[r] = new Array(3);
                 for (var g = 0; g < 3; g++) {
                     this.cubelets[r][g] = new Array(3);
                     for (var b = 0; b < 3; b++) {
-                        coordinates = [r - 1, g - 1, b - 1];
+
+                        index = { x: r - 1, y: g - 1, z: b - 1 };
+                        coordinates = this.centerOfCubeletAtIndex(index);
+
                         selectorColor = [ r / 3, g / 3, b / 3, 1.0];
                         this.cubelets[r][g][b] =
                           new Cubelet(
                                 this,
                                 this.cubeletModels[r][g][b],
                                 coordinates,
+                                index,
                                 selectorColor
                                 );
                     }
                 }
             }
             this.initCenters();
+        }
+
+        this.centerOfCubeletAtIndex = function(index) {
+            var models = this.cubeletModels;
+            var ix = index.x, iy = index.y, iz = index.z;
+            var i = ix + 1, j = iy + 1, k = iz + 1;
+
+            /*
+             * Each of these functions returns the length
+             * (in dimension x or y or z) for a given cubelet model
+             * where a is either -1, 0, 1
+             */
+            var xLenSelector =
+                  function(a) { return models[a+1 ][j   ][k   ].xLen };
+            var yLenSelector =
+                  function(a) { return models[i   ][a+1 ][k   ].yLen };
+            var zLenSelector =
+                  function(a) { return models[i   ][j   ][a+1 ].zLen };
+
+            /* 'a' varies between -1,0,1 */
+            var coordFor = function(a, lenSelector) {
+              if (a == -1) {
+                return (- (lenSelector(0)/2 + lenSelector(-1)/2));
+              } else if (a == 0) {
+                return 0;
+              } else { // a == 1
+                return (lenSelector(0)/2 + lenSelector(1)/2);
+              }
+            };
+
+
+          return [ coordFor(ix, xLenSelector),
+                   coordFor(iy, yLenSelector),
+                   coordFor(iz, zLenSelector)
+                 ]
         }
 
         this.initTextureFramebuffer = function() {
@@ -128,7 +169,7 @@
                   this.cubeletModels[i][j][k] = null;
                   // FIXME: not done yet
                 } else { // default is CUBE_SORTS.MirrorBlocks
-                  if (i == 0 && j == 1 && k == 2 ) {
+                  if (i == 0  ) {
                     this.cubeletModels[i][j][k] = alternateCubeletModel;
                   } else {
                     this.cubeletModels[i][j][k] = rubiksCubeletModel;
@@ -226,19 +267,21 @@
             if (!this.rotationAxis) {
                 return;
             }
+            var axis = ["x","y","z"][this.axisConstant];
+
             var cubelets = [];
             this.selectedCubelets.forEach(function(el) {
-                var value = el.coordinates[this.axisConstant];
-            for (var r = 0; r < 3; r++) {
-                for (var g = 0; g < 3; g++) {
-                    for (var b = 0; b < 3; b++) {
-                        var cubelet = this.cubelets[r][g][b];
-                        if (Math.abs(cubelet.coordinates[this.axisConstant] - value) < MARGIN_OF_ERROR) {
+              var value = el.index[axis];
+              for (var r = 0; r < 3; r++) {
+                  for (var g = 0; g < 3; g++) {
+                      for (var b = 0; b < 3; b++) {
+                          var cubelet = this.cubelets[r][g][b];
+                          if (Math.abs(cubelet.index[axis] - value) < MARGIN_OF_ERROR) {
                             cubelets.push(cubelet);
-                        }
-                    }
-                }
-            }
+                          }
+                      }
+                  }
+              }
             }, this);
             if (cubelets.length >= 9) {
                 this.rotatedCubelets = cubelets;
@@ -293,10 +336,23 @@
             var newRotationMatrix = mat4.create();
             mat4.rotate(newRotationMatrix, newRotationMatrix, degreesToRadians(this.degrees), this.rotationAxis);
 
+
             for (var c in this.rotatedCubelets) {
                 var cubelet = this.rotatedCubelets[c];
-                vec3.transformMat4(cubelet.coordinates, cubelet.coordinates, newRotationMatrix);
+
+                var itoc = function(index) { // index to coords
+                  return [ index.x, index.y, index.z ];
+                }
+
+                var ctoi = function(coords) { // coords to index
+                  return { x: coords[0], y: coords[1], z: coords[2]};
+                }
+
+                var indexVec = itoc(cubelet.index);
+                // vec3.transformMat4 updates its first argument
+                vec3.transformMat4(indexVec, itoc(cubelet.index), newRotationMatrix);
                 mat4.multiply(cubelet.rotationMatrix, newRotationMatrix, cubelet.rotationMatrix);
+                cubelet.index = ctoi(indexVec); // update index
             }
         }
 
@@ -498,8 +554,8 @@
             };
 
             this.selectedCubelets = layers[move.face].cubies;
-            this.axisConstant = layers[move.face].axis;
-            this.rotationAxis = layers[move.face].rotation;
+            this.axisConstant     = layers[move.face].axis;
+            this.rotationAxis     = layers[move.face].rotation;
             // not a true counter clockwise
             // but instead a ccw over this axis seen from origin
             if (layers[move.face].ccw)
@@ -585,9 +641,9 @@
                 for (var g = 0; g < 3; g++) {
                     for (var b = 0; b < 3; b++) {
                         cubelet = this.cubelets[r][g][b];
-                        x = cubelet.coordinates[0];
-                        y = cubelet.coordinates[1];
-                        z = cubelet.coordinates[2];
+                        x = cubelet.index.x;
+                        y = cubelet.index.y;
+                        z = cubelet.index.z;
                         var faces=[];
                         if (x === -1) faces.push('F'); else if (x === 1) faces.push('B');
                         if (y === -1) faces.push('U'); else if (y === 1) faces.push('D');
@@ -671,32 +727,40 @@
      *  selectorColorToCubelet to determine, for a given mouse (x,y), which
      *  cubelet has been selected.
      */
-    function Cubelet(rubiksCube, cubeletModel, coordinates, selectorColor) {
+    function Cubelet(rubiksCube, cubeletModel, coordinates, index, selectorColor) {
         this.model = cubeletModel;
         this.selectorColor = selectorColor; // Hacky
 
-        this.cubeVerticesBuffer = null;
-        this.cubeNormalsBuffer = null;
-        this.cubeFacesBuffer = null;
-        this.stickerVerticesBuffer = null;
-        this.stickerNormalsBuffer = null;
-        this.stickerFacesBuffer = null;
 
+        this.cubeVerticesBuffer = null;
+        this.cubeNormalsBuffer  = null;
+        this.cubeFacesBuffer    = null;
+
+        this.stickerVerticesBuffers = { xy: null, xz: null, yz: null};
+        this.stickerNormalsBuffers  = { xy: null, xz: null, yz: null};
+        this.stickerFacesBuffers    = { xy: null, xz: null, yz: null};
 
         this.rubiksCube = rubiksCube;
+
         this.coordinates = coordinates;
+        /*
+         * The index represents which of the 27 cubelets we are talking about
+         * Each dimension is either -1, 0, or 1
+         */
+        this.index = index;
+
         this.rotationMatrix = mat4.create();
         this.translationVector = vec3.create();
         this.stickers = [];
         this.COLORS = {
-            'blue': [0.1, 0.1, 1.0, 1.0],
-            'green': [0.1, 0.7, 0.1, 1.0],
+            'blue':   [0.1, 0.1, 1.0, 1.0],
+            'green':  [0.1, 0.7, 0.1, 1.0],
             'orange': [1.0, 0.5, 0.0, 1.0],
-            'red': [0.8, 0.1, 0.1, 1.0],
-            'white': [1.0, 1.0, 1.0, 1.0],
+            'red':    [0.8, 0.1, 0.1, 1.0],
+            'white':  [1.0, 1.0, 1.0, 1.0],
             'yellow': [1.0, 1.0, 0.1, 1.0],
-            'gray': [0.5, 0.5, 0.5, 1.0],
-            'black': [0.0, 0.0, 0.0, 1.0]
+            'gray':   [0.5, 0.5, 0.5, 1.0],
+            'black':  [0.0, 0.0, 0.0, 1.0]
         }
 
         this.init = function() {
@@ -708,43 +772,57 @@
         }
 
         this.initStickers = function() {
-            var x = this.coordinates[0];
-            var y = this.coordinates[1];
-            var z = this.coordinates[2];
-            if (x == -1) {
-                this.stickers.push(new Sticker(this, this.COLORS['red'], function() {
+            var ix = this.index.x;
+            var iy = this.index.y;
+            var iz = this.index.z;
+            /* x-axis, the YZ stickers */
+            if (ix == -1) {
+                this.stickers.push(new Sticker(this, "yz", this.COLORS['red'], function() {
                     this.cubelet.transform();
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [-1.001, 0, 0]);
+
+
+
+//                   var newX = (this.cubelet.rubiksCube.centerOfCubeletAtIndex(this.cubelet.index)[0] - 0.5) - 0.001;
+
+                    var newX = -(this.cubelet.model.xLen + 0.001);
+
+
+
+                    mat4.translate(modelViewMatrix, modelViewMatrix, [newX, 0, 0]);
                     mat4.rotateZ(modelViewMatrix, modelViewMatrix, degreesToRadians(90));
                 }));
-            } else if (x == 1) {
-                this.stickers.push(new Sticker(this, this.COLORS['orange'], function() {
+            } else if (ix == 1) {
+                this.stickers.push(new Sticker(this, "yz", this.COLORS['orange'], function() {
                     this.cubelet.transform();
                     mat4.translate(modelViewMatrix, modelViewMatrix, [1.001, 0, 0]);
                     mat4.rotateZ(modelViewMatrix, modelViewMatrix, degreesToRadians(-90));
                 }));
             }
-            if (y == -1) {
-                this.stickers.push(new Sticker(this, this.COLORS['yellow'], function() {
+
+            /* y-axis, the XZ stickers */
+            if (iy == -1) {
+                this.stickers.push(new Sticker(this, "xz", this.COLORS['yellow'], function() {
                     this.cubelet.transform();
                     mat4.translate(modelViewMatrix, modelViewMatrix, [0, -1.001, 0]);
                     mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(-180));
                 }));
-            } else if (y == 1) {
-                this.stickers.push(new Sticker(this, this.COLORS['white'], function() {
+            } else if (iy == 1) {
+                this.stickers.push(new Sticker(this, "xz", this.COLORS['white'], function() {
                     this.cubelet.transform();
                     mat4.translate(modelViewMatrix, modelViewMatrix, [0, 1.001, 0]);
                     setMatrixUniforms();
                 }));
             }
-            if (z == 1) {
-                this.stickers.push(new Sticker(this, this.COLORS['blue'], function() {
+
+            /* z-axis, the XY stickers */
+            if (iz == 1) {
+                this.stickers.push(new Sticker(this, "xy", this.COLORS['blue'], function() {
                     this.cubelet.transform();
                     mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, 1.001]);
                     mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(90));
                 }));
-            } else if (z == -1) {
-                this.stickers.push(new Sticker(this, this.COLORS['green'], function() {
+            } else if (iz == -1) {
+                this.stickers.push(new Sticker(this, "xy", this.COLORS['green'], function() {
                     this.cubelet.transform();
                     mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -1.001]);
                     mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(-90));
@@ -774,20 +852,24 @@
         }
 
         this.initStickerBuffers = function() {
-            // vertices
-            this.stickerVerticesBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.stickerVerticesBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeletModel.stickerModel.vertices), gl.STATIC_DRAW);
-            // normals
-            this.stickerNormalsBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.stickerNormalsBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeletModel.stickerModel.normals), gl.STATIC_DRAW);
-            // faces
-            this.stickerFacesBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.stickerFacesBuffer);
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeletModel.stickerModel.faces), gl.STATIC_DRAW);
-        }
+            var idx = [ "yz", "xz", "xy"], i, stickerIdx;
 
+            for (i = 0; i < idx.length; i++) {
+              stickerIdx = idx[i];
+              // vertices
+              this.stickerVerticesBuffers[stickerIdx] = gl.createBuffer();
+              gl.bindBuffer(gl.ARRAY_BUFFER, this.stickerVerticesBuffers[stickerIdx]);
+              gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeletModel.stickerModels[stickerIdx].vertices), gl.STATIC_DRAW);
+              // normals
+              this.stickerNormalsBuffers[stickerIdx] = gl.createBuffer();
+              gl.bindBuffer(gl.ARRAY_BUFFER, this.stickerNormalsBuffers[stickerIdx]);
+              gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeletModel.stickerModels[stickerIdx].normals), gl.STATIC_DRAW);
+              // faces
+              this.stickerFacesBuffers[stickerIdx] = gl.createBuffer();
+              gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.stickerFacesBuffers[stickerIdx]);
+              gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeletModel.stickerModels[stickerIdx].faces), gl.STATIC_DRAW);
+            }
+        }
 
         this.draw = function(color) {
             var mvMatrix = mat4.create();
@@ -816,7 +898,8 @@
 
     }
 
-    function Sticker(cubelet, color, transform) {
+    /* stickerIdx is "yz", "xz", or "xy" */
+    function Sticker(cubelet, stickerIdx, color, transform) {
         this.cubelet = cubelet;
         this.color = color;
         this.transform = transform;
@@ -828,18 +911,18 @@
             setMatrixUniforms();
 
             gl.uniform4fv(shaderProgram.ambient,  this.color);
-            gl.uniform4fv(shaderProgram.diffuse,  cubelet.model.stickerModel.diffuse);
-            gl.uniform4fv(shaderProgram.specular, cubelet.model.stickerModel.specular);
-            gl.uniform1f(shaderProgram.shininess, cubelet.model.stickerModel.shininess);
+            gl.uniform4fv(shaderProgram.diffuse,  cubelet.model.stickerModels[stickerIdx].diffuse);
+            gl.uniform4fv(shaderProgram.specular, cubelet.model.stickerModels[stickerIdx].specular);
+            gl.uniform1f(shaderProgram.shininess, cubelet.model.stickerModels[stickerIdx].shininess);
             // vertices
-            gl.bindBuffer(gl.ARRAY_BUFFER, cubelet.stickerVerticesBuffer);
+            gl.bindBuffer(gl.ARRAY_BUFFER, cubelet.stickerVerticesBuffers[stickerIdx]);
             gl.vertexAttribPointer(shaderProgram.vertexPosition, 3, gl.FLOAT, false, 0, 0);
             // normals
-            gl.bindBuffer(gl.ARRAY_BUFFER, cubelet.stickerNormalsBuffer);
+            gl.bindBuffer(gl.ARRAY_BUFFER, cubelet.stickerNormalsBuffers[stickerIdx]);
             gl.vertexAttribPointer(shaderProgram.vertexNormal, 3, gl.FLOAT, false, 0, 0);
             // faces
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubelet.stickerFacesBuffer);
-            gl.drawElements(gl.TRIANGLES, cubelet.model.stickerModel.faces.length, gl.UNSIGNED_SHORT, 0);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubelet.stickerFacesBuffers[stickerIdx]);
+            gl.drawElements(gl.TRIANGLES, cubelet.model.stickerModels[stickerIdx].faces.length, gl.UNSIGNED_SHORT, 0);
 
             mat4.copy(modelViewMatrix, mvMatrix);
         }
