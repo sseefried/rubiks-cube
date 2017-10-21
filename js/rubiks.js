@@ -31,9 +31,9 @@
     var up = [0, 1, 0];
     var fov = -19.5;
 
-    var modelViewMatrix = mat4.create();
+    var modelViewMatrix  = mat4.create();
     var projectionMatrix = mat4.create();
-    var rotationMatrix = mat4.create();
+    var rotationMatrix   = mat4.create();
 
     var DEGREES = 6;
     var MARGIN_OF_ERROR = 1e-3;
@@ -109,11 +109,11 @@
              * where a is either -1, 0, 1
              */
             var xLenSelector =
-                  function(a) { return models[a+1 ][j   ][k   ].xLen };
+                  function(a) { return models[a+1 ][j   ][k   ].size.x };
             var yLenSelector =
-                  function(a) { return models[i   ][a+1 ][k   ].yLen };
+                  function(a) { return models[i   ][a+1 ][k   ].size.y };
             var zLenSelector =
-                  function(a) { return models[i   ][j   ][a+1 ].zLen };
+                  function(a) { return models[i   ][j   ][a+1 ].size.z };
 
             /* 'a' varies between -1,0,1 */
             var coordFor = function(a, lenSelector) {
@@ -156,9 +156,8 @@
 
 
         this.initCubeletModels = function(cubeSort) {
-          var threeCubed = Math.pow(3,3);
           var i,j,k;
-          this.cubeletModels = new Array(threeCubed);
+          this.cubeletModels = new Array(3);
           for (var i = 0; i < 3; i++) {
             this.cubeletModels[i] = new Array(3);
             for (var j = 0; j < 3; j++) {
@@ -166,15 +165,10 @@
               for (var k = 0; k < 3; k++) {
 
                 if ( cubeSort == CUBE_SORTS.MirrorBlocks ) {
-                  this.cubeletModels[i][j][k] = null;
-                  // FIXME: not done yet
+                  this.cubeletModels[i][j][k] =
+                    mirrorBlocksCubeletModels[i][j][k];
                 } else { // default is CUBE_SORTS.MirrorBlocks
-                  if (i == 0  ) {
-                    this.cubeletModels[i][j][k] = alternateCubeletModel;
-                  } else {
                     this.cubeletModels[i][j][k] = rubiksCubeletModel;
-
-                  }
                 }
               }
             }
@@ -779,22 +773,15 @@
             if (ix == -1) {
                 this.stickers.push(new Sticker(this, "yz", this.COLORS['red'], function() {
                     this.cubelet.transform();
-
-
-
-//                   var newX = (this.cubelet.rubiksCube.centerOfCubeletAtIndex(this.cubelet.index)[0] - 0.5) - 0.001;
-
-                    var newX = -(this.cubelet.model.xLen + 0.001);
-
-
-
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [newX, 0, 0]);
+                    mat4.translate(modelViewMatrix, modelViewMatrix,
+                      [-(this.cubelet.model.size.x + MARGIN_OF_ERROR), 0, 0]);
                     mat4.rotateZ(modelViewMatrix, modelViewMatrix, degreesToRadians(90));
                 }));
             } else if (ix == 1) {
                 this.stickers.push(new Sticker(this, "yz", this.COLORS['orange'], function() {
                     this.cubelet.transform();
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [1.001, 0, 0]);
+                    mat4.translate(modelViewMatrix, modelViewMatrix,
+                      [(this.cubelet.model.size.x + MARGIN_OF_ERROR), 0, 0]);
                     mat4.rotateZ(modelViewMatrix, modelViewMatrix, degreesToRadians(-90));
                 }));
             }
@@ -803,29 +790,33 @@
             if (iy == -1) {
                 this.stickers.push(new Sticker(this, "xz", this.COLORS['yellow'], function() {
                     this.cubelet.transform();
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [0, -1.001, 0]);
+                    mat4.translate(modelViewMatrix, modelViewMatrix,
+                      [0, -(this.cubelet.model.size.y + MARGIN_OF_ERROR), 0]);
                     mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(-180));
                 }));
             } else if (iy == 1) {
                 this.stickers.push(new Sticker(this, "xz", this.COLORS['white'], function() {
                     this.cubelet.transform();
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [0, 1.001, 0]);
+                    mat4.translate(modelViewMatrix, modelViewMatrix,
+                      [0, (this.cubelet.model.size.y + MARGIN_OF_ERROR), 0]);
                     setMatrixUniforms();
                 }));
             }
 
             /* z-axis, the XY stickers */
-            if (iz == 1) {
-                this.stickers.push(new Sticker(this, "xy", this.COLORS['blue'], function() {
-                    this.cubelet.transform();
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, 1.001]);
-                    mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(90));
-                }));
-            } else if (iz == -1) {
+            if (iz == -1) {
                 this.stickers.push(new Sticker(this, "xy", this.COLORS['green'], function() {
                     this.cubelet.transform();
-                    mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -1.001]);
+                    mat4.translate(modelViewMatrix, modelViewMatrix,
+                      [0, 0, -(this.cubelet.model.size.z + MARGIN_OF_ERROR)]);
                     mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(-90));
+                }));
+            } else if (iz == 1) {
+                this.stickers.push(new Sticker(this, "xy", this.COLORS['blue'], function() {
+                    this.cubelet.transform();
+                    mat4.translate(modelViewMatrix, modelViewMatrix,
+                      [0, 0, (this.cubelet.model.size.z + MARGIN_OF_ERROR)]);
+                    mat4.rotateX(modelViewMatrix, modelViewMatrix, degreesToRadians(90));
                 }));
             }
         }
@@ -1144,7 +1135,7 @@
             CANVAS_Y_OFFSET = $(canvas).offset()['top'];
         gl = initWebGL(canvas);
         initShaders();
-        rubiksCube = new RubiksCube();
+        rubiksCube = new RubiksCube(CUBE_SORTS.MirrorBlocks);
         perspectiveView();
 
         if (gl) {
