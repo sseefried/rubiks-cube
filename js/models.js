@@ -187,13 +187,13 @@ var Util = function() {
 
           cubeletModels[i][j][k] = this.clone(model);
 
-          if (i == 0) { // L
+          if (i == 0) { // F
             cubeletModels[i][j][k] =
-              this.appModel(spec.L, "x", cubeletModels[i][j][k]);
+              this.appModel(spec.F, "x", cubeletModels[i][j][k]);
           }
-          if (i == 2) { // R
+          if (i == 2) { // B
             cubeletModels[i][j][k] =
-              this.appModel(spec.R, "x", cubeletModels[i][j][k]);
+              this.appModel(spec.B, "x", cubeletModels[i][j][k]);
           }
           if (j == 0) { // U
             cubeletModels[i][j][k] =
@@ -205,13 +205,13 @@ var Util = function() {
               this.appModel(spec.D, "y", cubeletModels[i][j][k]);
 
           }
-          if (k == 0) { // F
+          if (k == 0) { // R
             cubeletModels[i][j][k] =
-              this.appModel(spec.F, "z", cubeletModels[i][j][k]);
+              this.appModel(spec.R, "z", cubeletModels[i][j][k]);
           }
-          if (k == 2) { // B
+          if (k == 2) { // L
             cubeletModels[i][j][k] =
-              this.appModel(spec.B, "z", cubeletModels[i][j][k]);
+              this.appModel(spec.L, "z", cubeletModels[i][j][k]);
           }
         }
       }
