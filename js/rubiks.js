@@ -675,20 +675,21 @@
 
         this.reset = function() {
             this.init();
-                var alg = $(canvas).data('alg');
-                var algType = $(canvas).data('type');
+            var alg = $(canvas).data('alg');
+            var algType = $(canvas).data('type');
             // default order of RubikPlayer faces is F, R, D, B, L, U
             // we start with yellow on top
             var defaultStickers = "rrrrrrrrrgggggggggwwwwwwwwwooooooooobbbbbbbbbyyyyyyyyy";
-                var stickers = $(canvas).data('stickers') || defaultStickers;
+            var stickers = $(canvas).data('stickers') || defaultStickers;
             var stickerSets = {
+                BLANK:    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
                 CROSS:    "xxxxrxxrxxxxxgxxgxxwxwwwxwxxxxxoxxoxxxxxbxxbxxxxxyxxxx",
                 FL:       "xxxxxxrrrxxxxxxgggwwwwwwwwwxxxxxxoooxxxxxxbbbxxxxxxxxx",
                 F2L:      "xxxrrrrrrxxxggggggwwwwwwwwwxxxooooooxxxbbbbbbxxxxyxxxx",
                 SHORTCUT: "xxxxrrxrrxxxggxggxxwwwwwxwxxxxxoxxoxxxxxbxxbxxxxxyxxxx",
                 OLL:      "xxxrrrrrrxxxggggggwwwwwwwwwxxxooooooxxxbbbbbbyyyyyyyyy",
-                    PLL:      "rrrxxxxxxgggxxxxxxxxxxxxxxxoooxxxxxxbbbxxxxxxyyyyyyyyy",
-                    FULL:     defaultStickers
+                PLL:      "rrrxxxxxxgggxxxxxxxxxxxxxxxoooxxxxxxbbbxxxxxxyyyyyyyyy",
+                FULL:     defaultStickers
             };
             // replace stickers by full definition of set
             if (stickerSets[stickers.toUpperCase()]) {
@@ -704,13 +705,12 @@
                 isInitializing = true;
                     moves = this.inverseMoveList(moves);
                     doAlgorithm(moves);
-                }
-                    else {
+                } else {
                     isInitializing = false;
-            }
                 }
-            else
+            } else {
                 isInitializing = false;
+            }
         };
 
     }
@@ -1129,13 +1129,17 @@
         drawScene();
     }
 
-        function start(el) {
-            canvas = el;
-            CANVAS_X_OFFSET = $(canvas).offset()['left'];
-            CANVAS_Y_OFFSET = $(canvas).offset()['top'];
+    function start(el) {
+        var cubeSort;
+        canvas = el;
+        CANVAS_X_OFFSET = $(canvas).offset()['left'];
+        CANVAS_Y_OFFSET = $(canvas).offset()['top'];
+        cubeSort = $(canvas).data('sort') || 'Rubiks' ;
         gl = initWebGL(canvas);
         initShaders();
-        rubiksCube = new RubiksCube(CUBE_SORTS.MirrorBlocks);
+        rubiksCube =
+          new RubiksCube(cubeSort.toLowerCase() == 'mirrorblocks' ?
+                           CUBE_SORTS.MirrorBlocks : CUBE_SORTS.Rubiks );
         perspectiveView();
 
         if (gl) {
@@ -1456,7 +1460,7 @@
                 $(this).mouseup(glube.endRotate);
                 glube.reset();
                 glube.initControls();
-        });
+            });
             // controls
             $(this).find('.reset-cubelet').click(function() {glube.reset();});
             $(this).find('.scramble-cubelet').click(function() {glube.scramble()});
