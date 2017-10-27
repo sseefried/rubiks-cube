@@ -1462,8 +1462,8 @@
                 glube.initControls();
             });
             // controls
-            $(this).find('.reset-cubelet').click(function() {glube.reset();});
-            $(this).find('.scramble-cubelet').click(function() {glube.scramble()});
+            $(this).find('.reset-cube').click(function() {glube.reset();});
+            $(this).find('.scramble-cube').click(function() {glube.scramble()});
             $(this).find('.run-alg').click(function() {
                 glube.isInitializing = false;
                 var alg = $(this).prev().find('.algorithm').val();
