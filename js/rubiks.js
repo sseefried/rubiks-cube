@@ -1479,30 +1479,53 @@
 
     // global scope
     $(document).ready(function() {
-        $('.glube').each(function(){
-            var glube = new GLube;
+            var init = function(canvas) {
+                var glube = new GLube;
 
-            // animation
-            $(this).find('canvas').each(function() {
-                var canvas = this;
-                glube.start(this);
-                $(this).bind('contextmenu', function(e) { return false; });
-                $(this).mousedown(glube.startRotate);
-                $(this).mousemove(glube.rotate);
-                $(this).mouseup(glube.endRotate);
+                glube.start(canvas);
+                $(canvas).bind('contextmenu', function(e) { return false; });
+
                 glube.reset();
                 glube.initControls();
-            });
-            // controls
-            $(this).find('.reset-cube').click(function() {glube.reset();});
-            $(this).find('.scramble-cube').click(function() {glube.scramble()});
-            $(this).find('.run-alg').click(function() {
-                glube.isInitializing = false;
-                var alg = $(this).prev().find('.algorithm').val();
-                var moves = glube.parseAlgorithm(alg);
-                glube.doAlgorithm(moves);
-    });
+
+
+                $(canvas).mousedown(glube.startRotate);
+                $(canvas).mousemove(glube.rotate);
+                $(canvas).mouseup(glube.endRotate);
+
+                return glube;
+
+            }
+
+            var initControls = function(glube) {
+                                // controls
+                $('.reset-cube').click(function() {glube.reset();});
+                $('.scramble-cube').click(function() {glube.scramble()});
+                $('.run-alg').click(function() {
+                    glube.isInitializing = false;
+                    var alg = $(this).prev().find('.algorithm').val();
+                    var moves = glube.parseAlgorithm(alg);
+                    glube.doAlgorithm(moves);
+                });
+
+            }
+
+            var canvas1 = $(this).find('#canvas1')[0];
+            var canvas2 = $(this).find('#canvas2')[0];
+            var glube1 = init(canvas1);
+            var glube2 = init(canvas2);
+            initControls(glube1);
+
+            // var rb = glube1.rubiksCube;
+            // rb.selectedCubeletIndices = [ { r: 1, g: 1, b: 2} ];
+            // rb.rotation = 2;
+            // rb.setRotatedCubelets();
+            // glube1.setIsRotating(true);
+
+
+
+//            glube1.rubiksCube.setLinkedGlube(glube2);
+//            glube2.rubiksCube.setLinkedGlube(glube1);
         });
-    });
 
 })();
