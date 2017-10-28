@@ -9,7 +9,7 @@
      *      Michiel van der Blonk - blonkm@gmail.com
      * @license LGPL
      */
-    var GLube = function() {
+  var GLube = function() {
     var canvas;
     var gl;
     var rubiksCube;
@@ -39,6 +39,11 @@
     this.projectionMatrix = projectionMatrix;
     this.rotationMatrix   = rotationMatrix
 
+    var ctrlPressed = false;
+    var publisher   = null;
+
+    var that = this;
+
     var DEGREES = 6;
     var MARGIN_OF_ERROR = 1e-3;
 
@@ -50,8 +55,18 @@
     // Enumeration for cubelet sort
     var CUBE_SORTS = { Rubiks: 0,  MirrorBlocks: 1 };
 
-    this.setIsRotating = function(val) {
+    function setIsRotating(val) {
       isRotating = val;
+    }
+
+    /*
+     *  A programmatic way to turn the cube
+     */
+    function turn(cubeletIndices, rotation) {
+      rubiksCube.selectedCubeletIndices = cubeletIndices;
+      rubiksCube.rotation = rotation;
+      rubiksCube.setRotatedCubelets();
+      setIsRotating(true);
     }
 
     function RubiksCube(glube, cubeSort) {
@@ -392,15 +407,16 @@
             }
         }
 
-        this.selectCubelet = function(x, y) {
+        this.getSelectedCubeletIndex = function(x, y) {
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.pickingFramebuffer);
             var pixelValues = new Uint8Array(4);
             gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelValues);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            this.selectedCubeletIndices.push(this.selectorColorToCubeletIndex(pixelValues));
+            return this.selectorColorToCubeletIndex(pixelValues)
         }
 
-        this.setRotation = function(x, y, direction) {
+        this.getRotation = function(x, y, direction) {
+            var rotation;
             var normal = this.normalsCube.getNormal(x, y);
             if (!normal) {
                 return;
@@ -412,23 +428,23 @@
             var z = Math.round(axis[2]);
 
             if ( Math.abs(x + y + z) != 1 ) {
-              this.rotation = null;
-              return;
+              return null;
             }
 
             if (x == 1) {
-              this.rotation = { axis: "x", dir: "cw" };
+              rotation = { axis: "x", dir: "cw" };
             } else if (x == -1) {
-              this.rotation = { axis: "x", dir: "ccw" };
+              rotation = { axis: "x", dir: "ccw" };
             } else if (y == 1) {
-              this.rotation = { axis: "y", dir: "cw" };
+              rotation = { axis: "y", dir: "cw" };
             } else if (y == -1) {
-              this.rotation = { axis: "y", dir: "ccw" };
+              rotation = { axis: "y", dir: "ccw" };
             } else if (z == 1)   {
-              this.rotation = { axis: "z", dir: "cw" };
+              rotation = { axis: "z", dir: "cw" };
             } else if (z == -1 ) {
-              this.rotation = { axis: "z", dir: "ccw" };
+              rotation = { axis: "z", dir: "ccw" };
             }
+            return rotation;
         }
 
         /*
@@ -441,6 +457,9 @@
                 { axis: "y", dir: "cw" },
                 { axis: "z", dir: "cw" },
             ];
+
+
+            // FIXME: Replace with a call to "turn"
             this.selectedCubeletIndices.push({ r: r, g :g, b: b });
             this.rotation = rotation;
             this.setRotatedCubelets();
@@ -587,7 +606,7 @@
               move.inverse ? inverseAxisConstant(baseAxisConstant)
                            : baseAxisConstant;
             this.selectedCubeletIndices = layers[move.face].cubies;
-            this.rotation           = rotation;
+            this.rotation               = rotation;
             this.setRotatedCubelets(move);
             isRotating = true;
         }
@@ -596,6 +615,7 @@
             var that = this;
             var delay = 10;
             if (!isRotating && alg.length > 0) {
+                isAnimating = true;
                 var clone = alg.slice(0);
                 var move = clone.shift();
                 if (!move.count)
@@ -606,21 +626,11 @@
                 setTimeout(function() {that.perform(clone)}, delay);
             }
             else {
-                if (alg.length > 0)
+                if (alg.length > 0) {
                     setTimeout(function() {that.perform(alg)}, delay);
-                else
-                    this.algDone();
-            }
-        }
-
-        this.algDone = function() {
-            if (isRotating) {
-                setTimeout(rubiksCube.algDone, 100);
-            }
-            else {
-                isInitializing = false;
-                rubiksCube.currentMove = rubiksCube.noMove;
-                this.degrees = DEGREES;
+                } else {
+                  isInitializing = false;
+                }
             }
         }
 
@@ -730,14 +740,14 @@
             perspectiveView();
             if (alg) {
                 this.degrees = 90;
-                    $(canvas).parent().find('.algorithm').val(alg);
+                $(canvas).parent().find('.algorithm').val(alg);
                 var moves = parseAlgorithm(alg);
                 if (algType === 'solver') {
-                isInitializing = true;
-                    moves = this.inverseMoveList(moves);
-                    doAlgorithm(moves);
+                  isInitializing = true;
+                  moves = this.inverseMoveList(moves);
+                  doAlgorithm(moves);
                 } else {
-                    isInitializing = false;
+                  isInitializing = false;
                 }
             } else {
                 isInitializing = false;
@@ -1183,6 +1193,8 @@
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             tick();
         }
+        // by default every GLube gets its own publisher
+        subscribeTo(new Publisher());
     }
 
     function setMatrixUniforms() {
@@ -1234,6 +1246,29 @@
         return degrees * Math.PI / 180;
     }
 
+    function setCtrlPressed(v) {
+      ctrlPressed = v;
+    }
+    function keydown(event) {
+      if (event.keyCode == 17 ) {
+        setCtrlPressed(true);
+      }
+    }
+
+    function keyup(event) {
+      if (event.keyCode == 17) {
+        setCtrlPressed(false);
+      }
+    }
+
+    // FIXME: Need better name
+    function rotateCube(axis, degrees) {
+      var newRotationMatrix = mat4.create();
+      mat4.rotate(newRotationMatrix, newRotationMatrix, degreesToRadians(degrees), axis);
+      mat4.multiply(rotationMatrix, newRotationMatrix, rotationMatrix);
+
+    }
+
     function rotate(event) {
         if (rightMouseDown) {
             x_init_right = event.clientX;
@@ -1243,33 +1278,37 @@
 
             var axis = [-delta_y, delta_x, 0];
             var degrees = Math.sqrt(delta_x * delta_x + delta_y * delta_y);
-            var newRotationMatrix = mat4.create();
-            mat4.rotate(newRotationMatrix, newRotationMatrix, degreesToRadians(degrees), axis);
-            mat4.multiply(rotationMatrix, newRotationMatrix, rotationMatrix);
+
+            publisher.publishRotateCube(axis, degrees);
+
         } else if (leftMouseDown && !isRotating) {
+            var rotation;
             new_coordinates = screenToObjectCoordinates(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
             var direction = vec3.create();
             vec3.subtract(direction, new_coordinates, init_coordinates);
             vec3.normalize(direction, direction);
-            rubiksCube.setRotation(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET, direction);
-            rubiksCube.setRotatedCubelets();
-            isRotating = rubiksCube.rotatedCubelets && rubiksCube.rotation;
+            rotation = rubiksCube.getRotation(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET, direction);
+            publisher.publishTurn(rotation);
         }
         x_new_right = event.clientX;
         y_new_right = event.clientY;
     }
 
     function startRotate(event) {
-        if (event.button == LEFT_MOUSE) { // left mouse
+        if (event.button == LEFT_MOUSE && !ctrlPressed) { // left mouse
+            var cubeletIndex;
             rubiksCube.selectedCubeletIndices = [];
-            rubiksCube.selectCubelet(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
-            if (rubiksCube.selectedCubeletIndices.length > 0) {
+            cubeletIndex = rubiksCube.getSelectedCubeletIndex(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
+            publisher.setSelectedCubeletIndices([cubeletIndex]);
+
+            if (cubeletIndex != undefined) {
                 init_coordinates = screenToObjectCoordinates(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
                 setTimeout(function() {
                     leftMouseDown = true;
                 }, 50);
             }
-        } else if (event.button == RIGHT_MOUSE) { // right mouse
+        } else if (event.button == RIGHT_MOUSE ||
+                   (event.button == LEFT_MOUSE && ctrlPressed)) { // right mouse
             rightMouseDown = true;
             x_init_right = event.pageX;
             y_init_right = event.pageY;
@@ -1277,10 +1316,14 @@
     }
 
     function endRotate(event) {
-        if (event.button == LEFT_MOUSE && leftMouseDown) { // left mouse
+        if (event.button == LEFT_MOUSE && !ctrlPressed &&
+            leftMouseDown) { // left mouse
             leftMouseDown = false;
-            rubiksCube.algDone();
-        } else if (event.button == RIGHT_MOUSE) { // right mouse
+
+            // FIXME: Do we need an algDone()?
+
+        } else if (event.button == RIGHT_MOUSE ||
+                  (event.button == LEFT_MOUSE && ctrlPressed)) { // right mouse
             rightMouseDown = false;
         }
     }
@@ -1378,12 +1421,11 @@
         var count;
         isInitializing = false;
         if (!isAnimating) {
-            isAnimating = true;
-
-                if ($(canvas).parent().find('.scramble-length'))
-                    count = parseInt($(canvas).parent().find('.scramble-length').val());
-            else
+            if ($(canvas).parent().find('.scramble-length')) {
+               count = parseInt($(canvas).parent().find('.scramble-length').val());
+            } else {
                 count = Math.floor(Math.random() * 10) + 10;
+            }
             var moves = ['R','L','U','D','F','B'];
             var movesWithSlices = ['R','L','U','D','F','B','M','E','S'];
             var moveList = [];
@@ -1403,9 +1445,9 @@
                 inverse = moveCount==1 && Math.random() < 0.5;
                 moveList.push({face:randomMove, inverse:inverse, count:moveCount});
             }
-            rubiksCube.perform(moveList);
-        var ret = rubiksCube.moveListToString(moveList);
-                $(canvas).parent().find('.moveList').text(ret);
+            publishAlgorithm(moveList);
+            var ret = rubiksCube.moveListToString(moveList);
+            $(canvas).parent().find('.algorithm').val(ret);
         }
         return ret;
     }
@@ -1435,11 +1477,10 @@
     }
 
     function doAlgorithm(moves) {
-        if (!isAnimating) {
-            isAnimating = true;
-
-            rubiksCube.perform(moves);
-        }
+      if (!isAnimating) {
+        isAnimating = true;
+        rubiksCube.perform(moves);
+      }
     }
 
     function initControls() {
@@ -1463,69 +1504,137 @@
         });
     }
 
-        // public interface
-        this.start = start;
-        this.reset = function() { rubiksCube.reset(); };
-        this.rubiksCube = null;
-        this.initControls = function() { initControls(); };
-        this.parseAlgorithm = parseAlgorithm;
-        this.doAlgorithm = doAlgorithm;
-        this.scramble = scramble;
-        this.rotate = rotate;
-        this.startRotate = startRotate;
-        this.endRotate = endRotate;
-        this.togglePerspective = togglePerspective;
+    function publishAlgorithm(moves) {
+      publisher.publishAlgorithm(moves);
+    }
+
+    function publishReset() {
+      publisher.publishReset();
+    }
+
+    /*
+     *  If one subscribes to a publisher then this GLube object is
+     */
+    function subscribeTo(p) {
+      publisher = p;
+      p.addGlube(that);
+    }
+
+    // public interface
+    this.start = start;
+    this.reset = function() { if (!isAnimating) { rubiksCube.reset(); }} ;
+    this.rubiksCube = null;
+    this.initControls = function() { initControls(); };
+    this.parseAlgorithm = parseAlgorithm;
+    this.doAlgorithm = doAlgorithm;
+    this.scramble = scramble;
+    this.rotate = rotate;
+    this.startRotate = startRotate;
+    this.keyup = keyup;
+    this.keydown = keydown;
+    this.endRotate = endRotate;
+    this.togglePerspective = togglePerspective;
+    this.setIsRotating = setIsRotating;
+    this.turn = turn;
+    this.subscribeTo = subscribeTo;
+    this.rotateCube = rotateCube;
+    this.publishAlgorithm = publishAlgorithm;
+    this.publishReset = publishReset;
+
+
+  }; // var GLube = function() {
+
+  /*
+   *  So that multiple GLubes can be made to "turn in sync" with each
+   *  other each GLube publishes moves to a publish, which in turn
+   *  use the GLube's API to actually perform the moves.
+   *
+   *  By default each GLube has its own publisher but it can be overriden
+   *  with the subscribeTo function.
+   */
+  var Publisher = function() {
+
+    this.glubes = [];
+    this.selectedCubeletIndices = null;
+
+
+    this.addGlube = function(glube) {
+      this.glubes.push(glube);
     };
 
-    // global scope
-    $(document).ready(function() {
-            var init = function(canvas) {
-                var glube = new GLube;
+    this.setSelectedCubeletIndices = function(cubeletIndices) {
+      this.selectedCubeletIndices = cubeletIndices;
+    };
 
-                glube.start(canvas);
-                $(canvas).bind('contextmenu', function(e) { return false; });
+    this.publishTurn = function(rotation) {
+      var i;
+      for (i in this.glubes) {
+        this.glubes[i].turn(this.selectedCubeletIndices, rotation);
+      }
+    };
 
-                glube.reset();
-                glube.initControls();
+    this.publishRotateCube = function(axis, degrees) {
+      var i;
+      for (i in this.glubes) {
+        this.glubes[i].rotateCube(axis, degrees);
+      }
+    };
+
+    this.publishAlgorithm = function(moves) {
+      var i;
+      for (i in this.glubes) {
+        this.glubes[i].doAlgorithm(moves);
+      }
+    }
+
+    this.publishReset = function() {
+      var i;
+      for (i in this.glubes) {
+        this.glubes[i].reset();
+      }
+    }
+
+  };
+
+  // global scope
+  $(document).ready(function() {
+      var publishers = {};
+
+      $('.glube').each(function() {
+        var glube = new GLube;
+        var canvas = $(this).find('canvas')[0];
+
+        glube.start(canvas);
+        $(canvas).bind('contextmenu', function(e) { return false; });
+
+        $(document).keydown(glube.keydown);
+        $(document).keyup(glube.keyup);
+        $(canvas).mousedown(glube.startRotate);
+        $(canvas).mousemove(glube.rotate);
+        $(canvas).mouseup(glube.endRotate);
+
+        glube.reset();
+        glube.initControls();
 
 
-                $(canvas).mousedown(glube.startRotate);
-                $(canvas).mousemove(glube.rotate);
-                $(canvas).mouseup(glube.endRotate);
-
-                return glube;
-
-            }
-
-            var initControls = function(glube) {
-                                // controls
-                $('.reset-cube').click(function() {glube.reset();});
-                $('.scramble-cube').click(function() {glube.scramble()});
-                $('.run-alg').click(function() {
-                    glube.isInitializing = false;
-                    var alg = $(this).prev().find('.algorithm').val();
-                    var moves = glube.parseAlgorithm(alg);
-                    glube.doAlgorithm(moves);
-                });
-
-            }
-
-            var canvas1 = $(this).find('#canvas1')[0];
-            var canvas2 = $(this).find('#canvas2')[0];
-            var glube1 = init(canvas1);
-            var glube2 = init(canvas2);
-            initControls(glube1);
-
-            // var rb = glube1.rubiksCube;
-            // rb.selectedCubeletIndices = [ { r: 1, g: 1, b: 2} ];
-            // rb.rotation = 2;
-            // rb.setRotatedCubelets();
-            // glube1.setIsRotating(true);
-
-
-
-//            glube1.rubiksCube.setLinkedGlube(glube2);
-//            glube2.rubiksCube.setLinkedGlube(glube1);
+        $(this).find('.reset-cube').click(function() {glube.publishReset();});
+        $(this).find('.scramble-cube').click(function() {glube.scramble()});
+        $(this).find('.run-alg').click(function() {
+            glube.isInitializing = false;
+            var alg = $(this).prev().find('.algorithm').val();
+            var moves = glube.parseAlgorithm(alg);
+            glube.publishAlgorithm(moves);
         });
+
+        var sync_id = $(canvas).data("sync-id")
+        if (sync_id != undefined) {
+          if (!publishers[sync_id]) {
+            publishers[sync_id] = new Publisher();
+          }
+          glube.subscribeTo(publishers[sync_id])
+        }
+      });
+
+  });
 
 })();
