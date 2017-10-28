@@ -49,8 +49,9 @@
     var CUBE_SORTS = { Rubiks: 0,  MirrorBlocks: 1 };
 
     function RubiksCube(cubeSort) {
-        this.selectedCubelets = [];// an instance of
+        this.selectedCubeletIndices = [];// an instance of
         this.rotatedCubelets = null; // an array of Cubes
+
         this.rotationAxis = null; // a vec3
         this.axisConstant = null; // X_AXIS, Y_AXIS, or Z_AXIS
         this.rotationAngle = 0;
@@ -177,13 +178,13 @@
 
         this.initCenters = function() {
             this.centerCubes = {
-                left:   this.cubelets[1][1][2],
-                right:  this.cubelets[1][1][0],
-                up:     this.cubelets[1][0][1],
-                down:   this.cubelets[1][2][1],
-                front:  this.cubelets[0][1][1],
-                back:   this.cubelets[2][1][1],
-                core:   this.cubelets[1][1][1]
+                left:   {r: 1, g: 1, b: 2 },
+                right:  {r: 1, g: 1, b: 0 },
+                up:     {r: 1, g: 0, b: 1 },
+                down:   {r: 1, g: 2, b: 1 },
+                front:  {r: 0, g: 1, b: 1 },
+                back:   {r: 2, g: 1, b: 1 },
+                core:   {r: 1, g: 1, b: 1 }
             }
         }
 
@@ -254,7 +255,7 @@
 
         /*
          * Sets this.rotatedCubelets to an array of cubelets that share the
-         * same AXIS coordinate as this.selectedCubelets.
+         * same AXIS coordinate as this.selectedCubeletIndices.
          * AXIS is 0, 1, or 2 for the x-, y-, or z-coordinate.
          */
         this.setRotatedCubelets = function(move) {
@@ -264,18 +265,21 @@
             var axis = ["x","y","z"][this.axisConstant];
 
             var cubelets = [];
-            this.selectedCubelets.forEach(function(el) {
-              var value = el.index[axis];
-              for (var r = 0; r < 3; r++) {
-                  for (var g = 0; g < 3; g++) {
-                      for (var b = 0; b < 3; b++) {
-                          var cubelet = this.cubelets[r][g][b];
-                          if (Math.abs(cubelet.index[axis] - value) < MARGIN_OF_ERROR) {
-                            cubelets.push(cubelet);
-                          }
-                      }
-                  }
-              }
+            this.selectedCubeletIndices.forEach(function(idx) {
+                if (idx) {
+                    var el = this.cubelets[idx.r][idx.g][idx.b];
+                    var value = el.index[axis];
+                    for (var r = 0; r < 3; r++) {
+                        for (var g = 0; g < 3; g++) {
+                            for (var b = 0; b < 3; b++) {
+                                var cubelet = this.cubelets[r][g][b];
+                                if (Math.abs(cubelet.index[axis] - value) < MARGIN_OF_ERROR) {
+                                  cubelets.push(cubelet);
+                                }
+                            }
+                        }
+                    }
+                }
             }, this);
             if (cubelets.length >= 9) {
                 this.rotatedCubelets = cubelets;
@@ -350,14 +354,14 @@
             }
         }
 
-        this.selectorColorToCubelet = function(rgba) {
+        this.selectorColorToCubeletIndex = function(rgba) {
             var r = rgba[0];
             var g = rgba[1];
             var b = rgba[2];
             if (r == 255 && g == 255 && b == 255) { // clicked outside the cubelet
                 return null;
             } else {
-                return this.cubelets[r % 3][g % 3][b % 3];
+                return { r: r % 3, g: g % 3, b: b % 3 };
             }
         }
 
@@ -366,7 +370,7 @@
             var pixelValues = new Uint8Array(4);
             gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelValues);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            this.selectedCubelets.push(this.selectorColorToCubelet(pixelValues));
+            this.selectedCubeletIndices.push(this.selectorColorToCubeletIndex(pixelValues));
         }
 
         this.setRotationAxis = function(x, y, direction) {
@@ -403,7 +407,7 @@
                 [0, 1, 0],
                 [0, 0, 1]
             ];
-            this.selectedCubelets.push(this.cubelets[r][g][b]);
+            this.selectedCubeletIndices.push({ r: r, g :g, b: b });
             this.axisConstant = axis;
             this.rotationAxis = rot[axis];
             if (inverse)
@@ -499,7 +503,7 @@
                     this.centerCubes = centersInverse[layer];
                 else
                     this.centerCubes = centers[layer];
-                this.centerCubes.core = this.cubelets[1][1][1];
+                this.centerCubes.core = { r: 1, g: 1, b: 1};
             }
         }
 
@@ -547,9 +551,9 @@
                 "z": {cubies:[F,C,B], axis:X_AXIS, rotation:rot.X, ccw:false}
             };
 
-            this.selectedCubelets = layers[move.face].cubies;
-            this.axisConstant     = layers[move.face].axis;
-            this.rotationAxis     = layers[move.face].rotation;
+            this.selectedCubeletIndices = layers[move.face].cubies;
+            this.axisConstant           = layers[move.face].axis;
+            this.rotationAxis           = layers[move.face].rotation;
             // not a true counter clockwise
             // but instead a ccw over this axis seen from origin
             if (layers[move.face].ccw)
@@ -1229,9 +1233,9 @@
 
     function startRotate(event) {
         if (event.button == LEFT_MOUSE) { // left mouse
-            rubiksCube.selectedCubelets = [];
+            rubiksCube.selectedCubeletIndices = [];
             rubiksCube.selectCubelet(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
-            if (rubiksCube.selectedCubelets.length > 0) {
+            if (rubiksCube.selectedCubeletIndices.length > 0) {
                 init_coordinates = screenToObjectCoordinates(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET);
                 setTimeout(function() {
                     leftMouseDown = true;
