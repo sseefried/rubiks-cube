@@ -41,9 +41,7 @@
 
     var DEGREES = 6;
     var MARGIN_OF_ERROR = 1e-3;
-    var X_AXIS = 0;
-    var Y_AXIS = 1;
-    var Z_AXIS = 2;
+
     var LEFT_MOUSE = 0;
     var RIGHT_MOUSE = 2;
     var CANVAS_X_OFFSET = 0;
@@ -52,12 +50,17 @@
     // Enumeration for cubelet sort
     var CUBE_SORTS = { Rubiks: 0,  MirrorBlocks: 1 };
 
-    function RubiksCube(cubeSort) {
-        this.selectedCubeletIndices = [];// an instance of
-        this.rotatedCubelets = null; // an array of Cubes
+    this.setIsRotating = function(val) {
+      isRotating = val;
+    }
 
-        this.rotationAxis = null; // a vec3
-        this.axisConstant = null; // X_AXIS, Y_AXIS, or Z_AXIS
+    function RubiksCube(glube, cubeSort) {
+        this.glube = glube;
+        this.selectedCubeletIndices = [];// an instance of
+        this.rotatedCubelets = null; // an array of cubelets
+
+        this.rotation = null;
+
         this.rotationAngle = 0;
         this.degrees = DEGREES;
         this.cubeletModels = null;
@@ -264,11 +267,11 @@
          * AXIS is 0, 1, or 2 for the x-, y-, or z-coordinate.
          */
         this.setRotatedCubelets = function(move) {
-            if (!this.rotationAxis) {
+            if (this.rotation == undefined) {
                 return;
             }
-            var axis = ["x","y","z"][this.axisConstant];
 
+            var axis = this.rotation.axis;
             var cubelets = [];
             this.selectedCubeletIndices.forEach(function(idx) {
                 if (idx) {
@@ -286,6 +289,7 @@
                     }
                 }
             }, this);
+
             if (cubelets.length >= 9) {
                 this.rotatedCubelets = cubelets;
                 // is this a slice layer?
@@ -293,11 +297,12 @@
                 var that = this;
                 cubelets.forEach(function(cubelet, i, cubelets) {
                     if (cubelet.stickers.length==0) {
-                      var slices = ['S', 'E', 'M']; //x,y,z
-                      var slice = slices[that.axisConstant];
-                      var x = that.rotationAxis[X_AXIS];
-                      var y = that.rotationAxis[Y_AXIS];
-                      var z = that.rotationAxis[Z_AXIS];
+                      var slices = { x: 'S', y: 'E', z: 'M' }; //x,y,z
+                      var slice = slices[that.rotation.axis];
+                      var rotationAxis = that.getRotationAxis();
+                      var x = rotationAxis[0];
+                      var y = rotationAxis[1];
+                      var z = rotationAxis[2];
                       var sum = x+y+z;
                       var inverse = false;
                       inverse |= slice=='M' && sum==1;
@@ -313,8 +318,24 @@
             }
         }
 
+        this.getRotationAxis = function() {
+         var rot = {
+            "x": { "cw":  [1 , 0, 0],
+                   "ccw": [-1, 0, 0] },
+            "y": { "cw":  [ 0, 1, 0],
+                   "ccw": [ 0,-1, 0] },
+            "z": { "cw":  [ 0, 0, 1],
+                   "ccw": [ 0, 0,-1] }
+          };
+
+          if (this.rotation == undefined) {
+            return undefined;
+          }
+          return rot[this.rotation.axis][this.rotation.dir];
+        }
+
         /*
-         * Rotates this.rotatedCubelets around this.rotationAxis by this.degrees.
+         * Rotates this.rotatedCubelets around this.rotation by this.degrees.
          */
         this.rotateLayer = function(isDouble) {
             var fullTurn = isDouble ? 180 : 90;
@@ -337,7 +358,8 @@
             }
 
             var newRotationMatrix = mat4.create();
-            mat4.rotate(newRotationMatrix, newRotationMatrix, degreesToRadians(this.degrees), this.rotationAxis);
+            mat4.rotate(newRotationMatrix, newRotationMatrix,
+                        degreesToRadians(this.degrees), this.getRotationAxis());
 
 
             for (var c in this.rotatedCubelets) {
@@ -378,7 +400,7 @@
             this.selectedCubeletIndices.push(this.selectorColorToCubeletIndex(pixelValues));
         }
 
-        this.setRotationAxis = function(x, y, direction) {
+        this.setRotation = function(x, y, direction) {
             var normal = this.normalsCube.getNormal(x, y);
             if (!normal) {
                 return;
@@ -388,17 +410,24 @@
             var x = Math.round(axis[0]);
             var y = Math.round(axis[1]);
             var z = Math.round(axis[2]);
-            this.rotationAxis = Math.abs(x + y + z) == 1 ? [x, y, z] : null;
-            if (!this.rotationAxis) {
-                this.axisConstant = null;
-                return;
+
+            if ( Math.abs(x + y + z) != 1 ) {
+              this.rotation = null;
+              return;
             }
-            if (x == 1 || x == -1) {
-                this.axisConstant = X_AXIS;
-            } else if (y == 1 || y == -1) {
-                this.axisConstant = Y_AXIS;
-            } else if (z == 1 || z == -1 ) {
-                this.axisConstant = Z_AXIS;
+
+            if (x == 1) {
+              this.rotation = { axis: "x", dir: "cw" };
+            } else if (x == -1) {
+              this.rotation = { axis: "x", dir: "ccw" };
+            } else if (y == 1) {
+              this.rotation = { axis: "y", dir: "cw" };
+            } else if (y == -1) {
+              this.rotation = { axis: "y", dir: "ccw" };
+            } else if (z == 1)   {
+              this.rotation = { axis: "z", dir: "cw" };
+            } else if (z == -1 ) {
+              this.rotation = { axis: "z", dir: "ccw" };
             }
         }
 
@@ -406,17 +435,14 @@
          * For testing the rotation of a layer by matrix instead of layer.
          * Repeatedly called by doTransform to turn layer by this.degrees until 90 degrees is done
          */
-        this.transform = function(r,g,b, axis, inverse) {
+        this.transform = function(r,g,b, rotation, inverse) {
             var rot = [
-                [1, 0, 0],
-                [0, 1, 0],
-                [0, 0, 1]
+                { axis: "x", dir: "cw" },
+                { axis: "y", dir: "cw" },
+                { axis: "z", dir: "cw" },
             ];
             this.selectedCubeletIndices.push({ r: r, g :g, b: b });
-            this.axisConstant = axis;
-            this.rotationAxis = rot[axis];
-            if (inverse)
-                vec3.scale(this.rotationAxis, this.rotationAxis, -1);
+            this.rotation = rotation;
             this.setRotatedCubelets();
             isRotating = true;
         }
@@ -513,11 +539,6 @@
         }
 
         this.move = function(move) {
-            var rot = {
-                X: [1, 0, 0],
-                Y: [0, 1, 0],
-                Z: [0, 0, 1]
-            };
             var inverse = typeof move.inverse !== 'undefined' ? move.inverse : false;
             var L = this.centerCubes.left;
             var R = this.centerCubes.right;
@@ -527,45 +548,46 @@
             var B = this.centerCubes.back;
             var C = this.centerCubes.core;
 
+            var inverseAxisConstant = function(r) {
+              return { axis: r.axis, dir: (r.dir == "cw" ? "ccw" : "cw") };
+            }
+
             var layers = {
-                "L": {cubies:[L], axis:Z_AXIS, rotation:rot.Z, ccw:true},
-                "R": {cubies:[R], axis:Z_AXIS, rotation:rot.Z, ccw:false},
+                "L": {cubies:[L], rotation: { axis: "z", dir: "ccw"} },
+                "R": {cubies:[R], rotation: { axis: "z", dir: "cw" } },
 
-                "U": {cubies:[U], axis:Y_AXIS, rotation:rot.Y, ccw:false},
-                "D": {cubies:[D], axis:Y_AXIS, rotation:rot.Y, ccw:true},
+                "U": {cubies:[U], rotation: { axis: "y", dir: "cw"} },
+                "D": {cubies:[D], rotation: { axis: "y", dir: "ccw"} },
 
-                "F": {cubies:[F], axis:X_AXIS, rotation:rot.X, ccw:false},
-                "B": {cubies:[B], axis:X_AXIS, rotation:rot.X, ccw:true},
+                "F": {cubies:[F], rotation: { axis: "x", dir: "cw"} },
+                "B": {cubies:[B], rotation: { axis: "x", dir: "ccw"} },
 
                 // use center of cubelet for slices
-                "M": {cubies:[C], axis:Z_AXIS, rotation:rot.Z, ccw:true},
-                "E": {cubies:[C], axis:Y_AXIS, rotation:rot.Y, ccw:true},
-                "S": {cubies:[C], axis:X_AXIS, rotation:rot.X, ccw:false},
+                "M": {cubies:[C], rotation: { axis: "z", dir: "ccw"} },
+                "E": {cubies:[C], rotation: { axis: "y", dir: "ccw"} },
+                "S": {cubies:[C], rotation: { axis: "x", dir: "cw"} },
 
-                "l": {cubies:[L,C], axis:Z_AXIS, rotation:rot.Z, ccw:true},
-                "r": {cubies:[R,C], axis:Z_AXIS, rotation:rot.Z, ccw:false},
+                "l": {cubies:[L,C], rotation: { axis: "z", dir: "ccw"} },
+                "r": {cubies:[R,C], rotation: { axis: "z", dir: "cw"} },
 
-                "u": {cubies:[U,C], axis:Y_AXIS, rotation:rot.Y, ccw:false},
-                "d": {cubies:[D,C], axis:Y_AXIS, rotation:rot.Y, ccw:true},
+                "u": {cubies:[U,C], rotation: { axis: "y", dir: "cw"} },
+                "d": {cubies:[D,C], rotation: { axis: "y", dir: "ccw"}},
 
-                "f": {cubies:[F,C], axis:X_AXIS, rotation:rot.X, ccw:false},
-                "b": {cubies:[B,C], axis:X_AXIS, rotation:rot.X, ccw:true},
+                "f": {cubies:[F,C], rotation: { axis: "x", dir: "cw"}},
+                "b": {cubies:[B,C], rotation: { axis: "x", dir: "ccw"} },
 
-                "x": {cubies:[L,C,R], axis:Z_AXIS, rotation:rot.Z, ccw:false},
-                "y": {cubies:[U,C,D], axis:Y_AXIS, rotation:rot.Y, ccw:false},
-                "z": {cubies:[F,C,B], axis:X_AXIS, rotation:rot.X, ccw:false}
+                "x": {cubies:[L,C,R], rotation: { axis: "z", dir: "cw"} },
+                "y": {cubies:[U,C,D], rotation: { axis: "y", dir: "cw"}},
+                "z": {cubies:[F,C,B], rotation: { axis: "x", dir: "cw"} }
             };
 
+
+            var baseAxisConstant = layers[move.face].rotation;
+            var rotation =
+              move.inverse ? inverseAxisConstant(baseAxisConstant)
+                           : baseAxisConstant;
             this.selectedCubeletIndices = layers[move.face].cubies;
-            this.axisConstant           = layers[move.face].axis;
-            this.rotationAxis           = layers[move.face].rotation;
-            // not a true counter clockwise
-            // but instead a ccw over this axis seen from origin
-            if (layers[move.face].ccw)
-                inverse = !inverse;
-            if (inverse) {
-                vec3.scale(this.rotationAxis, this.rotationAxis, -1);
-            }
+            this.rotation           = rotation;
             this.setRotatedCubelets(move);
             isRotating = true;
         }
@@ -1139,16 +1161,17 @@
     }
 
     function start(el) {
-        var cubeSort;
+        var cubeSortStr, cubeSort;
         canvas = el;
         CANVAS_X_OFFSET = $(canvas).offset()['left'];
         CANVAS_Y_OFFSET = $(canvas).offset()['top'];
-        cubeSort = $(canvas).data('sort') || 'Rubiks' ;
+        cubeSortStr = $(canvas).data('sort') || 'Rubiks' ;
         gl = initWebGL(canvas);
         initShaders();
-        rubiksCube =
-          new RubiksCube(cubeSort.toLowerCase() == 'mirrorblocks' ?
-                           CUBE_SORTS.MirrorBlocks : CUBE_SORTS.Rubiks );
+        cubeSort = cubeSortStr.toLowerCase() == 'mirrorblocks' ?
+                           CUBE_SORTS.MirrorBlocks : CUBE_SORTS.Rubiks;
+        rubiksCube = new RubiksCube(this, cubeSort);
+        this.rubiksCube = rubiksCube;
         perspectiveView();
 
         if (gl) {
@@ -1228,9 +1251,9 @@
             var direction = vec3.create();
             vec3.subtract(direction, new_coordinates, init_coordinates);
             vec3.normalize(direction, direction);
-            rubiksCube.setRotationAxis(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET, direction);
+            rubiksCube.setRotation(event.pageX - CANVAS_X_OFFSET, canvas.height - event.pageY + CANVAS_Y_OFFSET, direction);
             rubiksCube.setRotatedCubelets();
-            isRotating = rubiksCube.rotatedCubelets && rubiksCube.rotationAxis;
+            isRotating = rubiksCube.rotatedCubelets && rubiksCube.rotation;
         }
         x_new_right = event.clientX;
         y_new_right = event.clientY;
@@ -1443,7 +1466,7 @@
         // public interface
         this.start = start;
         this.reset = function() { rubiksCube.reset(); };
-        this.rubiksCube = function() { return rubiksCube; };
+        this.rubiksCube = null;
         this.initControls = function() { initControls(); };
         this.parseAlgorithm = parseAlgorithm;
         this.doAlgorithm = doAlgorithm;
