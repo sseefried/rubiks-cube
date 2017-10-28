@@ -35,6 +35,10 @@
     var projectionMatrix = mat4.create();
     var rotationMatrix   = mat4.create();
 
+    this.modelViewMatrix  = modelViewMatrix;
+    this.projectionMatrix = projectionMatrix;
+    this.rotationMatrix   = rotationMatrix
+
     var DEGREES = 6;
     var MARGIN_OF_ERROR = 1e-3;
     var X_AXIS = 0;
@@ -64,6 +68,7 @@
         this.pickingFramebuffer = null;
         this.pickingTexture = null;
         this.pickingRenderBuffer = null;
+        this.cubeSort = cubeSort;
 
         this.init = function() {
             var r,g,b;
@@ -1124,8 +1129,8 @@
         rubiksCube.drawToNormalsFramebuffer();
         rubiksCube.drawToPickingFramebuffer();
         if (!isInitializing) {
-        rubiksCube.draw();
-    }
+            rubiksCube.draw();
+        }
     }
 
     function tick() {
