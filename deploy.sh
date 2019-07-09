@@ -1,5 +1,8 @@
 #!/bin/bash
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd $DIR
+
 if [ "$SEANSEEFRIED_DOT_ORG_MACHINE" = "" ]; then
   echo "Please set SEANSEEFRIED_DOT_ORG_MACHINE to an SSHable path"
   exit 1
